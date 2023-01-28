@@ -1,0 +1,29 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPep8Inspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="E262" />
+          <option value="E501" />
+          <option value="E266" />
+          <option value="E303" />
+          <option value="W605" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="int.isnumeric" />
+          <option value="str._get_delimiter" />
+          <option value="virustotal_automator.vt_url.VTUrl.__getitem__" />
+          <option value="virustotal_automator.vt_file.VTFile.__getitem__" />
+          <option value="property.__getitem__" />
+          <option value="property.__setitem__" />
+          <option value="return_cursor" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
