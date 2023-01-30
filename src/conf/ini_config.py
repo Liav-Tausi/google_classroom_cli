@@ -1,7 +1,7 @@
 import configparser
 
 
-def get_config(filename: str, section: str):
+def get_config(filename: str, section: str) -> dict:
     db_config: dict = dict()
 
     parser = configparser.ConfigParser()
