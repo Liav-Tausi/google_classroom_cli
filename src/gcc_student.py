@@ -8,8 +8,10 @@ import gcc_exceptions
 
 class Student(GccBase):
 
-    def __init__(self, email: str, role='student'):
-        super().__init__(role)
-        if not gcc_validators.is_email:
+    def __init__(self, email: str, path_to_creds: str, role: str = 'student'):
+        if role != 'student':
+            raise gcc_exceptions.InvalidRole()
+        super().__init__(role, path_to_creds)
+        if not gcc_validators.is_email(email):
             raise gcc_exceptions.InvalidEmail()
         self.__email: str = email
