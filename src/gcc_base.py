@@ -11,9 +11,13 @@ from datetime import timedelta, date
 import gcc_exceptions
 from conf import ini_config
 
+
+from google.oauth2 import service_account
+
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
 from src import gcc_validators
 
@@ -24,7 +28,10 @@ class GccBase(ABC):
 
     # ___Scopes ___ #
     __ADMIN_SCOPES: dict[str, str] = {
-        "courses": r"https://www.googleapis.com/auth/classroom.courses"
+        "courses": r"https://www.googleapis.com/auth/classroom.courses",
+        "class_rosters": "https://www.googleapis.com/auth/classroom.rosters",
+        "profile_emails": r"https://www.googleapis.com/auth/classroom.profile.emails",
+        "profile_photos": r"https://www.googleapis.com/auth/classroom.profile.photos",
     }
 
     __TEACHER_SCOPES: dict[str, str] = {
@@ -52,7 +59,7 @@ class GccBase(ABC):
         "topics_readonly": r"https://www.googleapis.com/auth/classroom.topics.readonly"
     }
 
-    def __init__(self, email: str, role: str, path_to_creds: str, ref_cache_month: int = 12):
+    def __init__(self, email: str, role: str, ref_cache_month: int = 12):
 
         self.__creds = None
 
@@ -60,9 +67,6 @@ class GccBase(ABC):
             raise gcc_exceptions.InvalidEmail()
         self.__email: str = email
 
-        if not os.path.exists(path_to_creds):
-            raise FileExistsError()
-        self.__path_to_creds = path_to_creds
 
         if ref_cache_month < 1:
             ref_cache_month = 1
@@ -89,10 +93,14 @@ class GccBase(ABC):
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.__creds.refresh(Request())
             else:
-                self.__credentials = InstalledAppFlow.from_client_secrets_file(
-                    f'{self.__path_to_creds}', list(scopes))
-                self.__creds = self.credentials.run_local_server(port=0)
-            with open(f'data/{self.__role}_token.json', 'w') as token:
+                credentials_account_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+                flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file=credentials_account_file, scopes=list(scopes))
+                self.__creds = flow.run_local_server(port=0)
+
+                # with open(r'C:\Users\liavt\PycharmProjects\google_classroom_cli\src\data\rosy-gantry-375713-a11bab60d294.json', 'r') as fh:
+                #     key = json.load(fh)
+                # self.__creds = service_account.Credentials.from_service_account_info(key, scopes=list(scopes))
+            with open(f'data/{self.__role}_token.json', 'w', encoding='utf-8') as token:
                 token.write(self.creds.to_json())
 
 
@@ -101,24 +109,26 @@ class GccBase(ABC):
 
         # ___ cache ___ #
         self.__cache: dict = dict()
+
+        # ___classroom___#
+        self.__classroom = build('classroom', 'v1', credentials=self.creds)
+
         try:
             if not os.path.exists('data/gcc_cache.json'):
-                with open('data/gcc_cache.json', 'a') as fh:
+                with open('data/gcc_cache.json', 'a', encoding='utf-8') as fh:
                     data: dict = dict()
                     json.dump(data, fh)
             else:
-                with open('data/gcc_cache.json', 'r') as fh1:
+                with open('data/gcc_cache.json', 'r', encoding='utf-8') as fh1:
                     data = json.load(fh1)
                     if isinstance(data, dict):
                         self.__cache = data
         except FileNotFoundError:
             self.__cache: dict = dict()
 
-
-
     @property
-    def credentials(self):
-        return self.__credentials
+    def classroom(self):
+        return self.__classroom
 
     @property
     def creds(self):
@@ -175,8 +185,8 @@ class GccBase(ABC):
                 else:
                     self._update_cache(result, now)
             return result
-
         return wrapper
+
 
     @staticmethod
     def save_cache(func):
@@ -184,7 +194,7 @@ class GccBase(ABC):
             try:
                 return func(*args, **kwargs)
             finally:
-                with open('data/gcc_cache.json', 'w') as fh:
+                with open('data/gcc_cache.json', 'w', encoding='utf-8') as fh:
                     json.dump(args[0].cache, fh)
         return wrapper
 
@@ -194,13 +204,7 @@ class GccBase(ABC):
         if self.email not in self.__cache:
             self.__cache[self.email] = {}
         self.__cache[self.email][course_id] = {
+            'course_id': course_id,
             'course_name': course_name,
             'cache_time': now,
         }
-
-
-
-
-
-
-

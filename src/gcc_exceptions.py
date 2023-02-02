@@ -19,9 +19,14 @@ class InvalidRole(GccErrors):
 
 class CourseStateError(GccErrors):
     def __init__(self):
-        super().__init__('course_state must be one of [PROVISIONED, ACTIVE, ARCHIVED, DECLINED, SUSPENDED].')
+        super().__init__('Course_state must be one of [PROVISIONED, ACTIVE, ARCHIVED, DECLINED, SUSPENDED].')
 
 
 class AlreadyInCache(GccErrors):
     def __init__(self):
-        super().__init__('course already made.')
+        super().__init__('Course already made.')
+
+
+class NotInCache(GccErrors):
+    def __init__(self):
+        super().__init__('Not in cache.')
