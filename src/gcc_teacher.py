@@ -10,10 +10,10 @@ import gcc_validators
 
 class Student(GccBase):
 
-    def __init__(self, email: str, path_to_creds: str, role: str = 'teacher'):
+    def __init__(self, role: str = 'teacher', ref_cache_month: int = 12,
+                 email: str = None, work_space: str = None):
+
         if role != 'teacher':
             raise gcc_exceptions.InvalidRole()
-        super().__init__(email, role, path_to_creds)
-        if not gcc_validators.is_email(email):
-            raise gcc_exceptions.InvalidEmail()
-        self.__email: str = email
+        super().__init__(role, ref_cache_month, work_space, email)
+
