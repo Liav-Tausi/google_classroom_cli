@@ -12,9 +12,24 @@ class InvalidEmail(GccErrors):
         super().__init__('Invalid Email.')
 
 
+class InvalidParams(GccErrors):
+    def __init__(self):
+        super().__init__('Email or Workspace needed.')
+
+
+class InvalidWorkSpace(GccErrors):
+    def __init__(self):
+        super().__init__('Invalid WorkSpace.')
+
+
 class InvalidRole(GccErrors):
     def __init__(self):
         super().__init__('Invalid Role.')
+
+
+class ExceededLimitError(GccErrors):
+    def __init__(self):
+        super().__init__('Exceeded limit 30.')
 
 
 class CourseStateError(GccErrors):
@@ -25,6 +40,11 @@ class CourseStateError(GccErrors):
 class AlreadyInCache(GccErrors):
     def __init__(self):
         super().__init__('Course already made.')
+
+
+class TeacherNotInCourse(GccErrors):
+    def __init__(self):
+        super().__init__('Teacher not in course.')
 
 
 class NotInCache(GccErrors):
