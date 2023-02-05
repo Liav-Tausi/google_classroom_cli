@@ -183,6 +183,10 @@ class GccBase(ABC):
     def set_limits(self):
         self.__limits = ini_config.get_config(filename='conf/personal_config.ini', section='usage_limits')
 
+
+    def get_user_id(self):
+        pass
+
     @staticmethod
     def cacher(func):
         @functools.wraps(func)
@@ -222,21 +226,33 @@ class GccBase(ABC):
 
 
     @save_cache
-    def _update_cache(self, result, now=None, add_teacher: bool = False, del_teacher: bool = False):
+    def _update_cache(self, result, now=None, del_course: bool = False,
+                      add_teacher: bool = False, del_teacher: bool = False):
+
         course_id, course_name, teacher_email = result
         if self.email not in self.__cache:
             self.__cache[self.email] = {}
-        if course_id not in self.__cache[self.email] and not del_teacher:
+        if course_id not in self.__cache[self.email] and not del_teacher or del_course:
             self.__cache[self.email][course_id] = {
                 'course_id': course_id,
                 'course_name': course_name,
-                'teachers': [teacher_email]
+                'teachers': [teacher_email],
+                'students': []
             }
         if add_teacher is True and teacher_email \
                 not in self.__cache[self.email][course_id]['teachers']:
 
             self.__cache[self.email][course_id]['teachers'].append(teacher_email)
             self.__cache[self.email][course_id]['cache_time'] = now
+
+        if del_course is True and result[0]:
+            with open('data/gcc_cache.json', 'r', encoding='utf-8') as fh:
+                gcc_cache = json.load(fh)
+
+            if self.email in gcc_cache and course_id in gcc_cache[self.email]:
+                gcc_cache[self.email].pop((str(course_id)))
+
+
 
         if del_teacher is True and str(course_id) in self.__cache[self.email]:
             self.__cache[self.email][course_id]['teachers'].remove(teacher_email)
