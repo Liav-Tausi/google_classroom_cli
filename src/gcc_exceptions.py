@@ -50,3 +50,13 @@ class TeacherNotInCourse(GccErrors):
 class NotInCache(GccErrors):
     def __init__(self):
         super().__init__('Not in cache.')
+
+
+class ScopeError(GccErrors):
+    def __init__(self):
+        super().__init__('Scopes should be [student, teacher, admin].')
+
+
+class AnnouncementStateError(GccErrors):
+    def __init__(self):
+        super().__init__('AnnouncementState should be [ANNOUNCEMENT_STATE_UNSPECIFIED, PUBLISHED, DRAFT, DELETED,].')
