@@ -12,7 +12,6 @@ import gcc_exceptions
 from conf import ini_config
 
 
-from google.oauth2 import service_account
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -20,6 +19,10 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 from src import gcc_validators
+
+import logging
+
+from googleapiclient.errors import HttpError
 
 
 class GccBase(ABC):
@@ -61,6 +64,7 @@ class GccBase(ABC):
 
     def __init__(self, role: str, ref_cache_month: int = 12,
                  work_space: str = None, email: str = None):
+        self.__logger = logging.getLogger(__name__)
 
         self.__creds = None
 
@@ -86,25 +90,23 @@ class GccBase(ABC):
         ref_date = date.today() + timedelta(weeks=4 * ref_cache_month)
         self.__ref_cache_month: date.month = ref_date.month
 
-
         self.__role: str = role.lower()
         if self.__role not in ['student', 'teacher', 'admin']:
             raise gcc_exceptions.UserError()
         else:
-            match self.__role:
-                case 'student':
-                    scopes = self.student_scopes
-                case 'teacher':
-                    scopes = self.teacher_scopes
-                case 'admin':
-                    scopes = self.admin_scopes
-
+            if self.__role == 'student':
+                scopes = self.student_scopes
+            elif self.__role == 'teacher':
+                scopes = self.teacher_scopes
+            elif self.__role == 'admin':
+                scopes = self.admin_scopes
+            else:
+                raise gcc_exceptions.ScopeError()
 
         self.__creds = None
         if os.path.exists(f'data/{self.__role}_token.json'):
             self.__creds = Credentials.from_authorized_user_file(f'data/{self.__role}_token.json',
                                                                  scopes=list(scopes))
-
 
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
@@ -120,7 +122,6 @@ class GccBase(ABC):
                 # self.__creds = service_account.Credentials.from_service_account_info(key, scopes=list(scopes))
             with open(f'data/{self.__role}_token.json', 'w', encoding='utf-8') as token:
                 token.write(self.creds.to_json())
-
 
         # ___limitations___ #
         self.__limits: dict = dict()
@@ -143,6 +144,17 @@ class GccBase(ABC):
                         self.__cache = data
         except FileNotFoundError:
             self.__cache: dict = dict()
+
+        if self.workspace:
+            check = self.workspace
+        else:
+            check = self.email
+
+        self.__check = check
+
+    @property
+    def check(self):
+        return self.__check
 
     @property
     def classroom(self):
@@ -180,39 +192,15 @@ class GccBase(ABC):
     def cache(self):
         return self.__cache
 
+    @property
+    def logger(self):
+        return self.__logger
+
     def set_limits(self):
         self.__limits = ini_config.get_config(filename='conf/personal_config.ini', section='usage_limits')
 
-
     def get_user_id(self):
         pass
-
-    @staticmethod
-    def cacher(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            self = args[0]
-            now = time.time()
-            result = func(*args, **kwargs)
-            course_id = result[0]
-            if self.email not in self.__cache:
-                self._update_cache(result, now)
-            else:
-                cache = self.__cache[self.email]
-                if course_id in cache:
-                    cache_time = cache[course_id]['cache_time']
-                    age = (now - cache_time) / (60 * 60 * 24 * 30)
-                    if age >= self.ref_cache_month:
-                        cache.pop(course_id, None)
-                        if not cache:
-                            self.__cache.pop(self.email, None)
-                    else:
-                        cache[course_id]['cache_time'] = now
-                else:
-                    self._update_cache(result, now)
-            return result
-        return wrapper
-
 
     @staticmethod
     def save_cache(func):
@@ -222,48 +210,14 @@ class GccBase(ABC):
             finally:
                 with open('data/gcc_cache.json', 'w', encoding='utf-8') as fh:
                     json.dump(args[0].cache, fh)
+
         return wrapper
 
-
     @save_cache
-    def _update_cache(self, result, now=None, del_course: bool = False,
-                      add_teacher: bool = False, del_teacher: bool = False):
+    def _update_cache(self):
 
-        course_id, course_name, teacher_email = result
-        if self.email not in self.__cache:
-            self.__cache[self.email] = {}
-        if course_id not in self.__cache[self.email] and not del_teacher or del_course:
-            self.__cache[self.email][course_id] = {
-                'course_id': course_id,
-                'course_name': course_name,
-                'teachers': [teacher_email],
-                'students': []
-            }
-        if add_teacher is True and teacher_email \
-                not in self.__cache[self.email][course_id]['teachers']:
-
-            self.__cache[self.email][course_id]['teachers'].append(teacher_email)
-            self.__cache[self.email][course_id]['cache_time'] = now
-
-        if del_course is True and result[0]:
-            with open('data/gcc_cache.json', 'r', encoding='utf-8') as fh:
-                gcc_cache = json.load(fh)
-
-            if self.email in gcc_cache and course_id in gcc_cache[self.email]:
-                gcc_cache[self.email].pop((str(course_id)))
-
-
-
-        if del_teacher is True and str(course_id) in self.__cache[self.email]:
-            self.__cache[self.email][course_id]['teachers'].remove(teacher_email)
-
-            with open('data/gcc_cache.json', 'r', encoding='utf-8') as fh:
-                gcc_cache = json.load(fh)
-
-            if self.email in gcc_cache and course_id in gcc_cache[self.email]:
-                gcc_cache[self.email][(str(course_id))]['teachers'] = list()
-
-
-
-
-
+        with open('data/gcc_cache.json', 'r', encoding='utf-8') as fh:
+            fh.read()
+            results = self.classroom.courses().list(pageSize=100).execute()
+            courses = results.get('courses', [])
+            self.__cache[self.check] = courses
