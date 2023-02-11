@@ -16,11 +16,14 @@ class Teacher(GccBase):
             raise gcc_exceptions.InvalidRole()
         super().__init__(role, ref_cache_month, work_space, email)
 
-    def create_announcement(self, course_id: str, announce_text: str, materials: object,
-                            state: object, scheduled_time: str, alternate_link: str,
-                            creation_time: str, update_time: str, assignee_mode: object,
-                            individual_students_options: object):
+
+    def create_announcement(self, course_id: str, announce_text: str, materials: dict,
+                            state: dict, scheduled_time: str, alternate_link: str = None,
+                            creation_time: str = None, update_time: str = None, assignee_mode: dict = None,
+                            individual_students_options: dict = None):
         """
+        this func defines the create_announcement method, create an announcement with the following params
+
         :param individual_students_options: individual_students_options object
                https://developers.google.com/classroom/reference/rest/v1/IndividualStudentsOptions
                for object representation
@@ -62,17 +65,110 @@ class Teacher(GccBase):
             "creatorUserId": self.check
         }
         try:
-            request = self.classroom.courses().announcements().create(
+            self.classroom.courses().announcements().create(
                 courseId=course_id,
                 body=announcement
             ).execute()
             self._update_cache()
+            return True
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+
+    def delete_announcement(self, course_id: str, ann_id: str) -> bool:
+        """
+        this func defines the delete_announcement method, delete an announcement with the following params
+        see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/delete
+        for more info
+
+        query-parameters = https://developers.google.com/classroom/reference/rest/v1/courses.announcements/delete#query-parameters
+
+        :param course_id: course's id string
+        :param ann_id: announcement's id string
+        :return:
+        """
+        if not all(isinstance(param, str) for param in (course_id, ann_id)):
+            raise TypeError()
+
+        try:
+            self.classroom.courses().announcements().delete(
+                courseId=course_id,
+                id=ann_id
+            )
+            self._update_cache()
+            return True
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+
+    def get_announcement(self, course_id: str, ann_id: str) -> dict:
+        """
+        this func defines the get_announcement method, get an announcement with the following params
+        see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/get
+        for more info
+
+        query-parameters = https://developers.google.com/classroom/reference/rest/v1/courses.announcements/get#query-parameters
+
+        :param course_id: course's id string
+        :param ann_id: announcement's id string
+        :return:
+        """
+        if not all(isinstance(param, str) for param in (course_id, ann_id)):
+            raise TypeError()
+        try:
+            request = self.classroom.courses().announcements().get(
+                courseId=course_id,
+                id=ann_id
+            )
+            self._update_cache()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
+            return False
 
 
+    def list_announcements(self, ann_states: str, page_size: int = 10, order_by: str = None,
+                           page_token: str = None) -> tuple | False:
+        """
+        this func defines the list_announcement method, get a list with all the announcements with the following params
+        see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list
+        for more info
 
+        query-parameters = https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list#query-parameters
+
+        :param ann_states: https://developers.google.com/classroom/reference/rest/v1/courses.announcements#AnnouncementState
+        :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
+        :param order_by: Optional sort ordering for results
+        :param page_token: https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list#body.ListAnnouncementsResponse.FIELDS.next_page_token
+        :return:
+        """
+
+        if not all(isinstance(param, str) for param in (ann_states, page_token, order_by)):
+            raise TypeError()
+
+        if ann_states not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+            raise gcc_exceptions.AnnouncementStateError()
+
+        query_params: dict = {}
+        if ann_states:
+            query_params['announcementStates'] = ann_states
+        if order_by:
+            query_params['orderBy'] = order_by
+        if page_size:
+            query_params['pageSize'] = str(page_size)
+        if page_token:
+            query_params['pageToken'] = page_token
+        try:
+            request = self.classroom.courses().announcements().list(**query_params).execute()
+            announcements = request.get("courses", [])
+            next_page_token = request.get("nextPageToken", None)
+            self._update_cache()
+            return announcements, next_page_token
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
 
 
 if __name__ == '__main__':
