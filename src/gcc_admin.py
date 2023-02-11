@@ -207,7 +207,7 @@ class Admin(GccBase):
 
 
 
-    def add_teacher(self, course_id: str, teacher_email: str) -> None:
+    def add_teacher(self, course_id: str, teacher_email: str) -> bool:
         """
         This method adds a teacher to the given course with the given id
         :param course_id:
@@ -229,6 +229,7 @@ class Admin(GccBase):
             self._update_cache()
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
+            return False
 
 
 
@@ -254,7 +255,7 @@ class Admin(GccBase):
 
 
 
-    def get_teacher(self, course_id: str, teacher_email: str) -> None:
+    def get_teacher(self, course_id: str, teacher_email: str) -> dict:
         """
         This method gets a teacher object from the given course with the given course id
         :param course_id:
@@ -270,6 +271,7 @@ class Admin(GccBase):
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
+
 
 
 
