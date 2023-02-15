@@ -17,7 +17,7 @@ class Teacher(GccBase):
         super().__init__(role, ref_cache_month, work_space, email)
 
 
-    def create_announcement(self, course_id: str, announce_text: str, materials: dict,
+    def create_announcement(self, course_id: str, announcement_text: str, materials: dict,
                             state: dict, scheduled_time: str, alternate_link: str = None,
                             creation_time: str = None, update_time: str = None, assignee_mode: dict = None,
                             individual_students_options: dict = None):
@@ -37,7 +37,7 @@ class Teacher(GccBase):
                https://developers.google.com/classroom/reference/rest/v1/courses.announcements#AnnouncementState
                     
         :param course_id: string
-        :param announce_text: sting
+        :param announcement_text: sting
 
         :param materials: materials object
                https://developers.google.com/classroom/reference/rest/v1/courses.announcements#Announcement
@@ -48,12 +48,12 @@ class Teacher(GccBase):
         if state not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
             raise gcc_exceptions.AnnouncementStateError()
 
-        if not all(isinstance(param, str) for param in (announce_text, course_id, creation_time,
+        if not all(isinstance(param, str) for param in (announcement_text, course_id, creation_time,
                                                         assignee_mode, update_time, scheduled_time)):
             raise TypeError()
 
         announcement = {
-            "text": announce_text,
+            "text": announcement_text,
             "materials": [materials],
             "state": state,
             "alternateLink": alternate_link,
@@ -76,7 +76,7 @@ class Teacher(GccBase):
             return False
 
 
-    def delete_announcement(self, course_id: str, ann_id: str) -> bool:
+    def delete_announcement(self, course_id: str, announcement_id: str) -> bool:
         """
         this func defines the delete_announcement method, delete an announcement with the following params
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/delete
@@ -85,16 +85,16 @@ class Teacher(GccBase):
         query-parameters = https://developers.google.com/classroom/reference/rest/v1/courses.announcements/delete#query-parameters
 
         :param course_id: course's id string
-        :param ann_id: announcement's id string
+        :param announcement_id: announcement's id string
         :return:
         """
-        if not all(isinstance(param, str) for param in (course_id, ann_id)):
+        if not all(isinstance(param, str) for param in (course_id, announcement_id)):
             raise TypeError()
 
         try:
             self.classroom.courses().announcements().delete(
                 courseId=course_id,
-                id=ann_id
+                id=announcement_id
             )
             self._update_cache()
             return True
@@ -103,7 +103,7 @@ class Teacher(GccBase):
             return False
 
 
-    def get_announcement(self, course_id: str, ann_id: str) -> dict:
+    def get_announcement(self, course_id: str, announcement_id: str) -> dict | False:
         """
         this func defines the get_announcement method, get an announcement with the following params
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/get
@@ -112,15 +112,15 @@ class Teacher(GccBase):
         query-parameters = https://developers.google.com/classroom/reference/rest/v1/courses.announcements/get#query-parameters
 
         :param course_id: course's id string
-        :param ann_id: announcement's id string
+        :param announcement_id: announcement's id string
         :return:
         """
-        if not all(isinstance(param, str) for param in (course_id, ann_id)):
+        if not all(isinstance(param, str) for param in (course_id, announcement_id)):
             raise TypeError()
         try:
             request = self.classroom.courses().announcements().get(
                 courseId=course_id,
-                id=ann_id
+                id=announcement_id
             )
             self._update_cache()
             return request
@@ -166,6 +166,78 @@ class Teacher(GccBase):
             next_page_token = request.get("nextPageToken", None)
             self._update_cache()
             return announcements, next_page_token
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+
+    def modify_assignees(self, course_id: str, announcement_id: str, assignee_mode: str,
+                         add_student_ids: list[str], remove_student_ids: list[str]) -> dict | False:
+
+        if not all(isinstance(param, str) for param in (course_id, announcement_id, assignee_mode)):
+            raise TypeError()
+
+        if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
+            raise gcc_exceptions.AssigneeModeError()
+
+        announcement = {
+            "assigneeMode": assignee_mode,
+            "modifyIndividualStudentsOptions": {
+                "addStudentIds": add_student_ids,
+                "removeStudentIds": remove_student_ids
+            }
+        }
+
+        try:
+            request = self.classroom.courses().announcements().modify_assignment(
+                courseId=course_id,
+                id=announcement_id,
+                body=announcement
+            ).execute()
+
+            return request
+
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def patch_announcement(self, course_id: str, announcement_id: str, new_state: str = None,
+                           new_text: str = None, new_scheduled_time: str = None):
+
+        if not all(isinstance(param, str) for param in (course_id, announcement_id)):
+            raise TypeError()
+
+        announcement: dict = {}
+        update_mask = ''
+
+        if new_text:
+            if not isinstance(new_state, str):
+                raise TypeError()
+            announcement['text'] = new_text
+            update_mask += 'text,'
+
+        if new_state:
+            if new_state not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+                raise gcc_exceptions.AnnouncementStateError()
+            announcement['state'] = new_state
+            update_mask += 'state,'
+
+        if new_scheduled_time:
+            if not isinstance(new_scheduled_time, str):
+                raise TypeError()
+            announcement['scheduledTime'] = new_scheduled_time
+            update_mask += 'scheduledTime,'
+
+        update_mask = update_mask.rstrip(',')
+
+        try:
+            request = self.classroom.courses().announcements().patch(
+                courseId=course_id,
+                id=announcement_id,
+                updateMask=update_mask,
+                body=announcement
+            ).execute()
+            return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
