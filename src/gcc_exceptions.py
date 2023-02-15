@@ -60,3 +60,8 @@ class ScopeError(GccErrors):
 class AnnouncementStateError(GccErrors):
     def __init__(self):
         super().__init__('AnnouncementState should be [ANNOUNCEMENT_STATE_UNSPECIFIED, PUBLISHED, DRAFT, DELETED,].')
+
+
+class AssigneeModeError(GccErrors):
+    def __init__(self):
+        super().__init__('AssigneeMode should be [ASSIGNEE_MODE_UNSPECIFIED, ALL_STUDENTS, INDIVIDUAL_STUDENTS].')
