@@ -8,7 +8,6 @@ from google.oauth2.credentials import Credentials
 import gcc_exceptions
 import gcc_validators
 
-
 from googleapiclient.errors import HttpError
 
 
@@ -32,7 +31,6 @@ class Admin(GccBase):
     def check(self):
         return self.__check
 
-
     def detailed_create_course(self) -> tuple:
         """
         This method reads in a detailed JSON representation of a course from a file and creates the course.
@@ -54,23 +52,23 @@ class Admin(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
 
-
-
     def create_course(self, name: str, section: str, description: str, room: str, owner_id='me',
                       course_state: str = 'PROVISIONED') -> tuple:
         """
         This method creates a course with the given name, section, description, room, owner_id, and course_state.
+        see https://developers.google.com/classroom/reference/rest/v1/courses/create
+        for more info
 
-        :param name: name of course
-        :param section: section of course
-        :param description: description of course
-        :param room: room of course
-        :param owner_id:
-        :param course_state:
-        :return:
+        :param name: Name of course 'string'
+        :param section: Section of course 'string'
+        :param description: Description of course 'string'
+        :param room: Room of course 'string'
+        :param owner_id: Owner's id or 'me' 'string'
+        :param course_state: Course state ['PROVISIONED', 'ACTIVE', 'ARCHIVED', 'DECLINED', 'SUSPENDED'] 'string'
+        :return: tuple of course info
         """
-        if not all(isinstance(param, str) for param in (name, section, description, room, owner_id)):
-            raise TypeError()
+        gcc_validators.are_params_string(name, section, description, room, owner_id, course_state)
+
         if course_state.upper() not in ['PROVISIONED', 'ACTIVE', 'ARCHIVED', 'DECLINED', 'SUSPENDED']:
             raise gcc_exceptions.CourseStateError()
 
@@ -93,9 +91,17 @@ class Admin(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
 
+    def delete_course(self, course_id: str) -> bool:
+        """
+        this func defines the delete_course method, deletes a course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses/delete
+        for more info
 
+        :param course_id: Identifier of the course to delete
+        :return: True | False
+        """
+        gcc_validators.are_params_string(course_id)
 
-    def delete_course(self, course_id: str) -> None:
         if course_id not in self.cache[self.check]:
             raise gcc_exceptions.NotInCache()
         try:
@@ -105,19 +111,27 @@ class Admin(GccBase):
                        Course id: {request["id"]}
             """)
             self._update_cache()
+            return True
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
+            return False
 
-
-
-    def patch_course(self, course_id: str, update_mask: str, course_data: dict):
+    def patch_course(self, course_id: str, update_mask: str, course_data: dict) -> bool:
         """
+        this func defines the patch_course method, modifies assignee mode and options of an announcement.
+        see https://developers.google.com/classroom/reference/rest/v1/courses/delete
+        for more info
 
-        :param course_id:
-        :param update_mask:
+        :param course_id: Identifier of the course to patch string
+        :param update_mask: Mask that identifies which fields on the course to update ex: "user.displayName,photo".
         :param course_data: course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
-        :return:
+        :return: True | False
         """
+        gcc_validators.are_params_string(course_id, update_mask)
+
+        if not isinstance(course_data, dict):
+            raise TypeError()
+
         course = {
             'name': course_data.get('name'),
             'section': course_data.get('section'),
@@ -134,18 +148,24 @@ class Admin(GccBase):
                 body=course
             ).execute()
             self._update_cache()
+            return True
         except HttpError as error:
             self.logger.error(f'An error occurred: {error}')
+            return False
 
-
-
-    def update_course(self, course_id: str, course_data: dict):
+    def update_course(self, course_id: str, course_data: dict) -> bool:
         """
+        this func defines the update_course method, updates a course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses/update
+        for more info
 
-        :param course_id:
-        :param course_data: course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
-        :return:
+        :param course_id: Identifier of the course to patch string
+        :param course_data: Course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
+        :return: True | False
         """
+        if not isinstance(course_id, str) and not isinstance(course_data, dict):
+            raise TypeError()
+
         course = {
             'name': course_data.get('name'),
             'section': course_data.get('section'),
@@ -155,37 +175,65 @@ class Admin(GccBase):
             'courseState': course_data.get('courseState'),
             'ownerId': course_data.get('ownerId')
         }
-
         try:
             self.classroom.courses().update(courseId=course_id).execute()
             self._update_cache()
-            return 'course updated'
+            return True
         except HttpError as error:
             self.logger.error(f'An error occurred: {error}')
+            return False
 
+    def get_course(self, course_id: str) -> dict | False:
+        """
+        this func defines the get_course method, returns a course..
+        see https://developers.google.com/classroom/reference/rest/v1/courses/get
+        for more info
 
+        :param course_id: Identifier of the course to patch string
+        :return: request | False
+        """
+        gcc_validators.are_params_string(course_id)
 
-    def get_course(self, course_id: int) -> None:
         try:
-            request = self.classroom.courses().get(course_id).execute()
+            request = self.classroom.courses().get(courseId=str(course_id)).execute()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
+            return False
 
-
-
-    def list_courses(self, student_id: str = 'me', teacher_id: str = None, course_states: list[str] = None,
-                     page_size: int = 10, page_token: str = None) -> tuple[str, str]:
+    def list_courses(self, student_id: str = 'me', teacher_id: str = 'me', course_states: list[str] = None,
+                     page_size: int = 10, page_token: str = None) -> tuple[str, str] | False:
         """
-        Returns a list of courses that the requesting user is permitted to view, restricted to those that match the request.
-        Returned courses are ordered by creation time, with the most recently created coming first.
-        :param student_id:
-        :param teacher_id:
-        :param course_states:
-        :param page_size:
-        :param page_token:
-        :return:
+        this func defines the list_courses method, returns a list of courses that the requesting user is permitted to view,
+        restricted to those that match the request. Returned courses are ordered by creation time,
+        with the most recently created coming first.
+        see https://developers.google.com/classroom/reference/rest/v1/courses/list
+        for more info
+
+        :param student_id: Restricts returned courses to those having a student with the specified identifier.
+        (the numeric identifier for the user *or*
+        the email address of the user "or"
+        the string literal "me" "or"
+        indicating the requesting user)
+
+        :param teacher_id: Restricts returned courses to those having a teacher with the specified identifier.
+        (the numeric identifier for the user *or*
+        the email address of the user "or"
+        the string literal "me" "or"
+        indicating the requesting user)
+
+        :param course_states: https://developers.google.com/classroom/reference/rest/v1/courses#CourseState
+        :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
+        :param page_token: Token identifying the next page of results to return. If empty, no further results are available
+        :return tuple[the courses, the next page token] | False
         """
+        gcc_validators.are_params_string(student_id, teacher_id, page_token)
+        gcc_validators.are_params_int(page_size)
+
+        if course_states not in ['COURSE_STATE_UNSPECIFIED', 'ACTIVE', 'ARCHIVED',
+                                 'PROVISIONED', 'DECLINED', 'SUSPENDED']:
+            raise gcc_exceptions.CourseStateError()
+
         query_params = {}
         if student_id:
             query_params['studentId'] = student_id
@@ -204,16 +252,91 @@ class Admin(GccBase):
             return courses, next_page_token
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
+            return False
 
-
-
-    def add_teacher(self, course_id: str, teacher_email: str) -> bool:
+    def create_alias(self, course_id: str, alias: str) -> dict | False:
         """
-        This method adds a teacher to the given course with the given id
-        :param course_id:
-        :param teacher_email:
-        :return:
+        this func defines the create_alias method, creates an alias for a course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.aliases/create
+        for more info
+
+        :param course_id: Identifier of the course. 'string'
+        :param alias: alias 'string'
+        :return: request dict | False
         """
+        gcc_validators.are_params_string(course_id)
+
+        body: dict = {
+            "alias": alias
+        }
+        try:
+            request = self.classroom.courses().aliases().create(courseId=course_id, body=body).execute()
+            return request
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def delete_alias(self, course_id: str, alias: str) -> bool:
+        """
+        this func defines the delete_alias method, deletes an alias of a course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.aliases/delete
+        for more info
+
+        :param course_id: Identifier of the course. 'string'
+        :param alias: alias 'string'
+        :return: True | False
+        """
+        gcc_validators.are_params_string(course_id, alias)
+
+        try:
+            self.classroom.courses().aliases().delete(courseId=course_id,
+                                                      aliasId=alias).execute()
+            return True
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def list_alias(self, course_id: str, page_size: int = 10, page_token: str = None) -> tuple | False:
+        """
+        this func defines the list_alias method, returns a list of aliases for a course..
+        see https://developers.google.com/classroom/reference/rest/v1/courses.aliases/list
+        for more info
+
+        :param course_id: Identifier of the course. 'string'
+        :param page_size: Page size 'int'
+        :param page_token: Next page token 'string'
+        :return: request | False
+        """
+
+        gcc_validators.are_params_string(course_id)
+        gcc_validators.are_params_int(page_size)
+
+        try:
+            request = self.classroom.courses().aliases().list(courseId=course_id,
+                                                              pageSize=page_size)
+            if page_token:
+                gcc_validators.are_params_string(page_token)
+                request.pageToken = page_token
+            teacher = request.execute()
+            next_page_token = teacher.get("nextPageToken", None)
+
+            return request, next_page_token
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def add_teacher(self, course_id: str, teacher_email: str = 'me') -> bool:
+        """
+        this func defines the add_teacher method, creates a teacher of a course..
+        see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/create
+        for more info
+
+        :param course_id: Identifier of the course. string
+        :param teacher_email: Teacher's email or 'me'
+        :return: True | False
+        """
+        gcc_validators.are_params_string(course_id, teacher_email)
+
         if not gcc_validators.is_email(teacher_email) and teacher_email != 'me':
             raise gcc_exceptions.InvalidEmail()
         data: dict = {
@@ -227,20 +350,24 @@ class Admin(GccBase):
                   % (request.get('profile').get('name').get('fullName'),
                      course_id))
             self._update_cache()
+            return True
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
-
-    def delete_teacher(self, course_id: str, teacher_email: str) -> None:
+    def delete_teacher(self, course_id: str, teacher_email: str) -> tuple[str, str] | False:
         """
-        This method deletes a teacher from the given course with the given id
-        :param course_id:
-        :param teacher_email:
-        :return:
+        this func defines the delete_teacher method, removes the specified teacher from the specified course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/delete
+        for more info
+
+        :param course_id: Identifier of the course. string
+        :param teacher_email: Teacher's email
+        :return: tuple[str, str] | False
 
         """
+        gcc_validators.are_params_string(course_id, teacher_email)
+
         if teacher_email not in self.cache[self.check][course_id]['teachers']:
             raise gcc_exceptions.TeacherNotInCourse()
         if not gcc_validators.is_email(teacher_email):
@@ -250,19 +377,24 @@ class Admin(GccBase):
                                                        userId=teacher_email).execute()
             self._update_cache()
             print(f'User {teacher_email} was deleted from course with ID {course_id}')
+            return teacher_email, course_id
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
+            return False
 
-
-
-    def get_teacher(self, course_id: str, teacher_email: str) -> dict:
+    def get_teacher(self, course_id: str, teacher_email: str) -> dict | False:
         """
-        This method gets a teacher object from the given course with the given course id
-        :param course_id:
-        :param teacher_email:
-        :return:
+        this func defines the delete_teacher method, removes the specified teacher from the specified course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/get
+        for more info
+
+        :param course_id: Identifier of the course. string
+        :param teacher_email: Teacher's email
+        :return: request dict | False
 
         """
+        gcc_validators.are_params_string(course_id, teacher_email)
+
         if not gcc_validators.is_email(teacher_email):
             raise gcc_exceptions.InvalidEmail()
         try:
@@ -271,19 +403,22 @@ class Admin(GccBase):
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
-
-
-
-
+            return False
 
     def list_teachers(self, course_id: str, page_size: int = 10, page_token: str = None):
         """
-        This method gets a list of teachers from the given course with the given course id
-        :param course_id:
-        :param page_size:
-        :param page_token:
+        this func defines the list_teachers method, returns a list of teachers of this course that the requester is permitted to view.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/list
+        for more info
+
+        :param course_id: Identifier of the course. string
+        :param page_size: page size 'int'
+        :param page_token: next page token 'string'
         :return:
         """
+        gcc_validators.are_params_string(course_id, page_token)
+        gcc_validators.are_params_int(page_size)
+
         if page_size > 100:
             raise ValueError("Page size cannot be more than 100.")
         try:
@@ -297,7 +432,7 @@ class Admin(GccBase):
             return teacher, next_page_token
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
-
+            return False
 
 
 if __name__ == '__main__':
@@ -309,4 +444,3 @@ if __name__ == '__main__':
     # print(gcc.get_teacher(course_id=588714514132, teacher_email='liavt242@gmail.com'))
     # print(gcc.list_teachers(course_id=588714514132))
     # print(gcc.list_courses(teacher_id='liavt242@gmail.com'))
-
