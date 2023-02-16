@@ -20,3 +20,14 @@ def is_work_space_email(email: str) -> bool:
         return True
     else:
         return False
+
+
+def are_params_string(*args, **kwargs):
+    if not all(isinstance(param, str) for param in args):
+        raise TypeError()
+
+
+def are_params_int(*args, **kwargs):
+    if not all(isinstance(param, int) for param in args):
+        raise TypeError()
+
