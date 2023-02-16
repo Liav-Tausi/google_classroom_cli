@@ -16,11 +16,10 @@ class Teacher(GccBase):
             raise gcc_exceptions.InvalidRole()
         super().__init__(role, ref_cache_month, work_space, email)
 
-
     def create_announcement(self, course_id: str, announcement_text: str, materials: dict,
                             state: dict, scheduled_time: str, alternate_link: str = None,
                             creation_time: str = None, update_time: str = None, assignee_mode: dict = None,
-                            individual_students_options: dict = None):
+                            individual_students_options: dict = None) -> bool:
         """
         this func defines the create_announcement method, create an announcement with the following params
 
@@ -43,14 +42,13 @@ class Teacher(GccBase):
                https://developers.google.com/classroom/reference/rest/v1/courses.announcements#Announcement
                for object representation
 
-        :return:
+        :return: True
         """
+        gcc_validators.are_params_string(announcement_text, course_id, creation_time,
+                                         assignee_mode, update_time, scheduled_time)
+
         if state not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
             raise gcc_exceptions.AnnouncementStateError()
-
-        if not all(isinstance(param, str) for param in (announcement_text, course_id, creation_time,
-                                                        assignee_mode, update_time, scheduled_time)):
-            raise TypeError()
 
         announcement = {
             "text": announcement_text,
@@ -75,7 +73,6 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
     def delete_announcement(self, course_id: str, announcement_id: str) -> bool:
         """
         this func defines the delete_announcement method, delete an announcement with the following params
@@ -84,12 +81,11 @@ class Teacher(GccBase):
 
         query-parameters = https://developers.google.com/classroom/reference/rest/v1/courses.announcements/delete#query-parameters
 
-        :param course_id: course's id string
-        :param announcement_id: announcement's id string
-        :return:
+        :param course_id: Course's id string
+        :param announcement_id: Announcement's id string
+        :return: True
         """
-        if not all(isinstance(param, str) for param in (course_id, announcement_id)):
-            raise TypeError()
+        gcc_validators.are_params_string(course_id, announcement_id)
 
         try:
             self.classroom.courses().announcements().delete(
@@ -102,7 +98,6 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
     def get_announcement(self, course_id: str, announcement_id: str) -> dict | False:
         """
         this func defines the get_announcement method, get an announcement with the following params
@@ -113,10 +108,10 @@ class Teacher(GccBase):
 
         :param course_id: course's id string
         :param announcement_id: announcement's id string
-        :return:
+        :return: request dict | False
         """
-        if not all(isinstance(param, str) for param in (course_id, announcement_id)):
-            raise TypeError()
+        gcc_validators.are_params_string(course_id, announcement_id)
+
         try:
             request = self.classroom.courses().announcements().get(
                 courseId=course_id,
@@ -127,7 +122,6 @@ class Teacher(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
-
 
     def list_announcements(self, ann_states: str, page_size: int = 10, order_by: str = None,
                            page_token: str = None) -> tuple | False:
@@ -142,11 +136,10 @@ class Teacher(GccBase):
         :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
         :param order_by: Optional sort ordering for results
         :param page_token: https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list#body.ListAnnouncementsResponse.FIELDS.next_page_token
-        :return:
+        :return: request dict | False
         """
-
-        if not all(isinstance(param, str) for param in (ann_states, page_token, order_by)):
-            raise TypeError()
+        gcc_validators.are_params_string(ann_states, page_token, order_by)
+        gcc_validators.are_params_int(page_size)
 
         if ann_states not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
             raise gcc_exceptions.AnnouncementStateError()
@@ -170,12 +163,23 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
     def modify_assignees(self, course_id: str, announcement_id: str, assignee_mode: str,
-                         add_student_ids: list[str], remove_student_ids: list[str]) -> dict | False:
+                         add_student_ids: list[str] = None, remove_student_ids: list[str] = None) -> dict | False:
+        """
+        this func defines the modify_assignees method, modifies assignee mode and options of an announcement.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/modifyAssignees
+        for more info
 
-        if not all(isinstance(param, str) for param in (course_id, announcement_id, assignee_mode)):
-            raise TypeError()
+        :param course_id: Identifier of the course. 'string'
+        :param announcement_id: Identifier of the announcement. 'string'
+        :param assignee_mode: modes of assigning coursework/announcements. ['ASSIGNEE_MODE_UNSPECIFIED',
+                                                                            'ALL_STUDENTS',
+                                                                            'INDIVIDUAL_STUDENTS']
+        :param add_student_ids: Set which students can view or cannot view the announcement.
+        :param remove_student_ids: Set which students can view or cannot view the announcement.
+        :return: request dict | False
+        """
+        gcc_validators.are_params_string(course_id, announcement_id, assignee_mode)
 
         if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
             raise gcc_exceptions.AssigneeModeError()
@@ -202,17 +206,26 @@ class Teacher(GccBase):
             return False
 
     def patch_announcement(self, course_id: str, announcement_id: str, new_state: str = None,
-                           new_text: str = None, new_scheduled_time: str = None):
+                           new_text: str = None, new_scheduled_time: str = None) -> dict | False:
+        """
+        this func defines the patch_announcement method, updates one or more fields of an announcement.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/patch
+        for more info
 
-        if not all(isinstance(param, str) for param in (course_id, announcement_id)):
-            raise TypeError()
+        :param course_id: Identifier of the course. 'string'
+        :param announcement_id: Identifier of the announcement. 'string'
+        :param new_state: new announcement state ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']
+        :param new_text: new announcement text
+        :param new_scheduled_time: new scheduled time
+        :return: request dict | False
+        """
+        gcc_validators.are_params_string(course_id, announcement_id)
 
         announcement: dict = {}
         update_mask = ''
 
         if new_text:
-            if not isinstance(new_state, str):
-                raise TypeError()
+            gcc_validators.are_params_string(new_state)
             announcement['text'] = new_text
             update_mask += 'text,'
 
@@ -223,8 +236,7 @@ class Teacher(GccBase):
             update_mask += 'state,'
 
         if new_scheduled_time:
-            if not isinstance(new_scheduled_time, str):
-                raise TypeError()
+            gcc_validators.are_params_string(new_scheduled_time)
             announcement['scheduledTime'] = new_scheduled_time
             update_mask += 'scheduledTime,'
 
