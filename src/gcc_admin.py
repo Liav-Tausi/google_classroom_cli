@@ -42,7 +42,7 @@ class Admin(GccBase):
         with open('data/detailed_create_course.json', 'r') as fh:
             course_json = json.load(fh)
         try:
-            request = self.classroom.courses().create(body=course_json).execute()
+            request: dict = self.classroom.courses().create(body=course_json).execute()
             print(f"""
             Created course: {request["name"]}
             Course id: {request["id"]}
@@ -52,8 +52,8 @@ class Admin(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
 
-    def create_course(self, name: str, section: str, description: str, room: str, owner_id='me',
-                      course_state: str = 'PROVISIONED') -> tuple:
+    def quick_create_course(self, name: str, section: str, description: str, room: str, owner_id='me',
+                            course_state: str = 'PROVISIONED') -> tuple:
         """
         This method creates a course with the given name, section, description, room, owner_id, and course_state.
         see https://developers.google.com/classroom/reference/rest/v1/courses/create
@@ -81,7 +81,7 @@ class Admin(GccBase):
             'courseState': course_state.upper()
         }
         try:
-            request = self.classroom.courses().create(body=course).execute()
+            request: dict = self.classroom.courses().create(body=course).execute()
             print(f"""
                    Created course: {request["name"]}
                    Course id: {request["id"]}
@@ -97,7 +97,7 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses/delete
         for more info
 
-        :param course_id: Identifier of the course to delete
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :return: True | False
         """
         gcc_validators.are_params_string(course_id)
@@ -122,7 +122,7 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses/delete
         for more info
 
-        :param course_id: Identifier of the course to patch string
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param update_mask: Mask that identifies which fields on the course to update ex: "user.displayName,photo".
         :param course_data: course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
         :return: True | False
@@ -159,7 +159,7 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses/update
         for more info
 
-        :param course_id: Identifier of the course to patch string
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param course_data: Course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
         :return: True | False
         """
@@ -189,13 +189,13 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses/get
         for more info
 
-        :param course_id: Identifier of the course to patch string
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :return: request | False
         """
         gcc_validators.are_params_string(course_id)
 
         try:
-            request = self.classroom.courses().get(courseId=str(course_id)).execute()
+            request: dict = self.classroom.courses().get(courseId=str(course_id)).execute()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -246,7 +246,7 @@ class Admin(GccBase):
         if page_token:
             query_params['pageToken'] = page_token
         try:
-            request = self.classroom.courses().list(**query_params).execute()
+            request: dict = self.classroom.courses().list(**query_params).execute()
             courses = request.get("courses", [])
             next_page_token = request.get("nextPageToken", None)
             return courses, next_page_token
@@ -260,7 +260,7 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses.aliases/create
         for more info
 
-        :param course_id: Identifier of the course. 'string'
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param alias: alias 'string'
         :return: request dict | False
         """
@@ -270,7 +270,7 @@ class Admin(GccBase):
             "alias": alias
         }
         try:
-            request = self.classroom.courses().aliases().create(courseId=course_id, body=body).execute()
+            request: dict = self.classroom.courses().aliases().create(courseId=course_id, body=body).execute()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -343,7 +343,7 @@ class Admin(GccBase):
             "userId": teacher_email,
         }
         try:
-            request = self.classroom.courses().teachers().create(courseId=course_id,
+            request: dict = self.classroom.courses().teachers().create(courseId=course_id,
                                                                  body=data).execute()
 
             print('User %s was added as a teacher to the course with ID %s'
@@ -398,7 +398,7 @@ class Admin(GccBase):
         if not gcc_validators.is_email(teacher_email):
             raise gcc_exceptions.InvalidEmail()
         try:
-            request = self.classroom.courses().teachers().get(courseId=course_id,
+            request: dict = self.classroom.courses().teachers().get(courseId=course_id,
                                                               userId=teacher_email).execute()
             return request
         except HttpError as error:
