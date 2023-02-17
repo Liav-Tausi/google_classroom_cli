@@ -116,10 +116,6 @@ class GccBase(ABC):
                 flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file=credentials_account_file,
                                                                  scopes=list(scopes))
                 self.__creds = flow.run_local_server(port=0)
-
-                # with open(r'C:\Users\liavt\PycharmProjects\google_classroom_cli\src\data\rosy-gantry-375713-a11bab60d294.json', 'r') as fh:
-                #     key = json.load(fh)
-                # self.__creds = service_account.Credentials.from_service_account_info(key, scopes=list(scopes))
             with open(f'data/{self.__role}_token.json', 'w', encoding='utf-8') as token:
                 token.write(self.creds.to_json())
 
