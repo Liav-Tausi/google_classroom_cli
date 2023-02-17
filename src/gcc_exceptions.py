@@ -62,6 +62,22 @@ class AnnouncementStateError(GccErrors):
         super().__init__('AnnouncementState should be [ANNOUNCEMENT_STATE_UNSPECIFIED, PUBLISHED, DRAFT, DELETED,].')
 
 
+class CourseWorkStateError(GccErrors):
+    def __init__(self):
+        super().__init__('CourseWorkState should be [COURSE_WORK_STATE_UNSPECIFIED, PUBLISHED, DRAFT, DELETED].')
+
+
+class CourseWorkTypeError(GccErrors):
+    def __init__(self):
+        super().__init__('CourseWorkType should be [COURSE_WORK_TYPE_UNSPECIFIED, ASSIGNMENT,'
+                         ' SHORT_ANSWER_QUESTION, MULTIPLE_CHOICE_QUESTION].')
+
+
 class AssigneeModeError(GccErrors):
     def __init__(self):
         super().__init__('AssigneeMode should be [ASSIGNEE_MODE_UNSPECIFIED, ALL_STUDENTS, INDIVIDUAL_STUDENTS].')
+
+
+class CourseJsonEmpty(GccErrors):
+    def __init__(self):
+        super().__init__('Course json is not full.')
