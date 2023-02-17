@@ -66,6 +66,7 @@ class Admin(GccBase):
         :param owner_id: Owner's id or 'me' 'string'
         :param course_state: Course state ['PROVISIONED', 'ACTIVE', 'ARCHIVED', 'DECLINED', 'SUSPENDED'] 'string'
         :return: tuple of course info
+
         """
         gcc_validators.are_params_string(name, section, description, room, owner_id, course_state)
 
