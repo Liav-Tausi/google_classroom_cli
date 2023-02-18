@@ -35,11 +35,11 @@ class Admin(GccBase):
         """
         This method reads in a detailed JSON representation of a course from a file and creates the course.
         course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
-        see detailed_create_course.json
+        see detailed_course.json
         :return: tuple
 
         """
-        with open('data/detailed_create_course.json', 'r') as fh:
+        with open('templates/detailed_course.json', 'r') as fh:
             course_json = json.load(fh)
         try:
             request: dict = self.classroom.courses().create(body=course_json).execute()
@@ -68,12 +68,14 @@ class Admin(GccBase):
         :return: tuple of course info
 
         """
+        # validation
         gcc_validators.are_params_string(name, section, description, room, owner_id, course_state)
 
-        if course_state.upper() not in ['PROVISIONED', 'ACTIVE', 'ARCHIVED', 'DECLINED', 'SUSPENDED']:
+        if course_state.upper() not in ['COURSE_STATE_UNSPECIFIED', 'PROVISIONED',
+                                        'ACTIVE', 'ARCHIVED', 'DECLINED', 'SUSPENDED']:
             raise gcc_exceptions.CourseStateError()
 
-        course: dict = {
+        body: dict = {
             'name': name,
             'section': section,
             'descriptionHeading': description,
@@ -82,7 +84,7 @@ class Admin(GccBase):
             'courseState': course_state.upper()
         }
         try:
-            request: dict = self.classroom.courses().create(body=course).execute()
+            request: dict = self.classroom.courses().create(body=body).execute()
             print(f"""
                    Created course: {request["name"]}
                    Course id: {request["id"]}
@@ -101,6 +103,7 @@ class Admin(GccBase):
         :param course_id: either identifier of the course or assigned alias. 'string'
         :return: True | False
         """
+        # validation
         gcc_validators.are_params_string(course_id)
 
         if course_id not in self.cache[self.check]:
@@ -117,36 +120,74 @@ class Admin(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def patch_course(self, course_id: str, update_mask: str, course_data: dict) -> bool:
+    def detailed_patch_course(self):
+        pass #############################_to_do_################################
+
+    def quick_patch_course(self, course_id: str, name: str = None, state: str = None,
+                           description: str = None, description_heading: str = None,
+                           materials: list = None, course_json: bool = False) -> bool:
         """
         this func defines the patch_course method, modifies assignee mode and options of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses/delete
         for more info
 
+        :param course_json: 'detailed_course.json' must be full!!!
+
+        :param materials: Additional materials. CourseWork must have no more than 20 material items. 'list[material]'
+                         https://developers.google.com/classroom/reference/rest/v1/Material
+
+        :param description_heading: Optional heading for the description. For example, "Welcome to 10th Grade Biology."
+                                    If set, this field must be a valid UTF-8 string and no longer than 3600 characters. 'string'
+
+        :param description: Optional description. For example, "We'll be learning about the structure of
+                            living creatures from a combination of textbooks, guest lectures, and lab work. Expect to be excited!"
+                            If set, this field must be a valid UTF-8 string and no longer than 30,000 characters. 'string'
+
+        :param state:
+
+        :param name: Name of the course. For example, "10th Grade Biology". The name is required.
+                     It must be between 1 and 750 characters and a valid UTF-8 string. 'string'
+
         :param course_id: either identifier of the course or assigned alias. 'string'
-        :param update_mask: Mask that identifies which fields on the course to update ex: "user.displayName,photo".
-        :param course_data: course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
         :return: True | False
         """
-        gcc_validators.are_params_string(course_id, update_mask)
+        # validation
+        if course_json:
+            raise gcc_exceptions.CourseJsonEmpty()
 
-        if not isinstance(course_data, dict):
-            raise TypeError()
+        body: dict = dict()
 
-        course = {
-            'name': course_data.get('name'),
-            'section': course_data.get('section'),
-            'descriptionHeading': course_data.get('descriptionHeading'),
-            'description': course_data.get('description'),
-            'room': course_data.get('room'),
-            'courseState': course_data.get('courseState'),
-            'ownerId': course_data.get('ownerId')
-        }
+        if name:
+            gcc_validators.are_params_string(name)
+            body['name'] = name
+
+        if description:
+            gcc_validators.are_params_string(description)
+            body['description'] = description
+
+        if description_heading:
+            gcc_validators.are_params_string(description_heading)
+            body['descriptionHeading'] = description_heading
+
+        if state:
+            if state not in ['COURSE_STATE_UNSPECIFIED', 'PROVISIONED',
+                             'ACTIVE', 'ARCHIVED', 'DECLINED', 'SUSPENDED']:
+                raise gcc_exceptions.CourseStateError()
+            body['courseState'] = state
+
+        if materials:
+            if isinstance(materials, list):
+                raise TypeError()
+            body['materials'] = materials
+
+        update_mask = ','.join(body.keys())
+        update_mask = update_mask.rstrip(',')
+
         try:
             self.classroom.courses().patch(
                 id=course_id,
                 updateMask=update_mask,
-                body=course
+                body=body
             ).execute()
             self._update_cache()
             return True
@@ -164,6 +205,7 @@ class Admin(GccBase):
         :param course_data: Course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
         :return: True | False
         """
+        # validation
         if not isinstance(course_id, str) and not isinstance(course_data, dict):
             raise TypeError()
 
@@ -177,7 +219,7 @@ class Admin(GccBase):
             'ownerId': course_data.get('ownerId')
         }
         try:
-            self.classroom.courses().update(courseId=course_id).execute()
+            self.classroom.courses().update(courseId=course_id, body=course).execute()
             self._update_cache()
             return True
         except HttpError as error:
@@ -193,6 +235,7 @@ class Admin(GccBase):
         :param course_id: either identifier of the course or assigned alias. 'string'
         :return: request | False
         """
+        # validation
         gcc_validators.are_params_string(course_id)
 
         try:
@@ -228,6 +271,7 @@ class Admin(GccBase):
         :param page_token: Token identifying the next page of results to return. If empty, no further results are available
         :return tuple[the courses, the next page token] | False
         """
+        # validation
         gcc_validators.are_params_string(student_id, teacher_id, page_token)
         gcc_validators.are_params_int(page_size)
 
@@ -265,6 +309,7 @@ class Admin(GccBase):
         :param alias: alias 'string'
         :return: request dict | False
         """
+        # validation
         gcc_validators.are_params_string(course_id)
 
         body: dict = {
@@ -283,7 +328,7 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses.aliases/delete
         for more info
 
-        :param course_id: Identifier of the course. 'string'
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param alias: alias 'string'
         :return: True | False
         """
@@ -303,12 +348,12 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses.aliases/list
         for more info
 
-        :param course_id: Identifier of the course. 'string'
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param page_size: Page size 'int'
         :param page_token: Next page token 'string'
         :return: request | False
         """
-
+        # validation
         gcc_validators.are_params_string(course_id)
         gcc_validators.are_params_int(page_size)
 
@@ -332,10 +377,11 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/create
         for more info
 
-        :param course_id: Identifier of the course. string
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param teacher_email: Teacher's email or 'me'
         :return: True | False
         """
+        # validation
         gcc_validators.are_params_string(course_id, teacher_email)
 
         if not gcc_validators.is_email(teacher_email) and teacher_email != 'me':
@@ -345,7 +391,7 @@ class Admin(GccBase):
         }
         try:
             request: dict = self.classroom.courses().teachers().create(courseId=course_id,
-                                                                 body=data).execute()
+                                                                       body=data).execute()
 
             print('User %s was added as a teacher to the course with ID %s'
                   % (request.get('profile').get('name').get('fullName'),
@@ -362,11 +408,12 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/delete
         for more info
 
-        :param course_id: Identifier of the course. string
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param teacher_email: Teacher's email
         :return: tuple[str, str] | False
 
         """
+        # validation
         gcc_validators.are_params_string(course_id, teacher_email)
 
         if teacher_email not in self.cache[self.check][course_id]['teachers']:
@@ -389,34 +436,37 @@ class Admin(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/get
         for more info
 
-        :param course_id: Identifier of the course. string
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param teacher_email: Teacher's email
         :return: request dict | False
 
         """
+        # validation
         gcc_validators.are_params_string(course_id, teacher_email)
 
         if not gcc_validators.is_email(teacher_email):
             raise gcc_exceptions.InvalidEmail()
         try:
             request: dict = self.classroom.courses().teachers().get(courseId=course_id,
-                                                              userId=teacher_email).execute()
+                                                                    userId=teacher_email).execute()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def list_teachers(self, course_id: str, page_size: int = 10, page_token: str = None):
+    def list_teachers(self, course_id: str, page_size: int = 10, page_token: str = None) -> tuple[dict, str] | False:
         """
         this func defines the list_teachers method, returns a list of teachers of this course that the requester is permitted to view.
         see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/list
         for more info
 
-        :param course_id: Identifier of the course. string
+        :param course_id: either identifier of the course or assigned alias. 'string'
         :param page_size: page size 'int'
         :param page_token: next page token 'string'
-        :return:
+        :return: tuple[dict, str]
+
         """
+        # validation
         gcc_validators.are_params_string(course_id, page_token)
         gcc_validators.are_params_int(page_size)
 
@@ -438,7 +488,7 @@ class Admin(GccBase):
 
 if __name__ == '__main__':
     gcc = Admin(email='liavt242@gmail.com')
-    liav = gcc.create_course(name='daniel', section='liav', description='liav', room='fee')
+    liav = gcc.quick_create_course(name='daniel', section='liav', description='liav', room='fee')
     # # gcc.add_teacher(course_id=liav[0])
     # # gcc.delete_teacher(course_id=542178731078, teacher_email='liavt242@gmail.com')
     # gcc.delete_course(course_id=588714514132)
