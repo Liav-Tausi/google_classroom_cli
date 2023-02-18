@@ -1,0 +1,23 @@
+{
+  "id": "",
+  "name": "",
+  "section": "",
+  "descriptionHeading": "",
+  "description": "",
+  "room": "",
+  "ownerId": "",
+  "creationTime": "",
+  "updateTime": "",
+  "enrollmentCode": "",
+  "courseState": "",
+  "alternateLink": "",
+  "teacherGroupEmail": "",
+  "courseGroupEmail": "",
+  "teacherFolder": {},
+  "courseMaterialSets": [
+    {}
+  ],
+  "guardiansEnabled": true,
+  "calendarId": "",
+  "gradebookSettings": {}
+}
