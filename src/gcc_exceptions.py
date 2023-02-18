@@ -73,9 +73,19 @@ class CourseWorkTypeError(GccErrors):
                          ' SHORT_ANSWER_QUESTION, MULTIPLE_CHOICE_QUESTION].')
 
 
+class TimeStampError(GccErrors):
+    def __init__(self):
+        super().__init__('Time stamp error')
+
+
 class AssigneeModeError(GccErrors):
     def __init__(self):
         super().__init__('AssigneeMode should be [ASSIGNEE_MODE_UNSPECIFIED, ALL_STUDENTS, INDIVIDUAL_STUDENTS].')
+
+
+class CourseWorkJsonEmpty(GccErrors):
+    def __init__(self):
+        super().__init__('CourseWork json is not full.')
 
 
 class CourseJsonEmpty(GccErrors):
