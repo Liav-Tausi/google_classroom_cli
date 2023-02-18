@@ -1,4 +1,6 @@
+import datetime
 import json
+import pytz
 
 from gcc_base import GccBase
 from googleapiclient.discovery import build
@@ -46,6 +48,7 @@ class Teacher(GccBase):
 
         :return: True
         """
+        # validation
         gcc_validators.are_params_string(announcement_text, course_id, creation_time,
                                          assignee_mode, update_time, scheduled_time)
 
@@ -87,6 +90,7 @@ class Teacher(GccBase):
         :param announcement_id: Announcement's id 'string'
         :return: True
         """
+        # validation
         gcc_validators.are_params_string(course_id, announcement_id)
 
         try:
@@ -112,6 +116,7 @@ class Teacher(GccBase):
         :param announcement_id: announcement's id 'string'
         :return: request dict | False
         """
+        # validation
         gcc_validators.are_params_string(course_id, announcement_id)
 
         try:
@@ -140,6 +145,7 @@ class Teacher(GccBase):
         :param page_token: https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list#body.ListAnnouncementsResponse.FIELDS.next_page_token
         :return: request dict | False
         """
+        # validation
         gcc_validators.are_params_string(ann_states, page_token, order_by)
         gcc_validators.are_params_int(page_size)
 
@@ -165,8 +171,9 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def modify_assignees(self, course_id: str, announcement_id: str, assignee_mode: str,
-                         add_student_ids: list[str] = None, remove_student_ids: list[str] = None) -> dict | False:
+    def modify_announcement_assignees(self, course_id: str, announcement_id: str, assignee_mode: str,
+                                      add_student_ids: list[str] = None,
+                                      remove_student_ids: list[str] = None) -> dict | False:
         """
         this func defines the modify_assignees method, modifies assignee mode and options of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/modifyAssignees
@@ -181,12 +188,13 @@ class Teacher(GccBase):
         :param remove_student_ids: Set which students can view or cannot view the announcement.
         :return: request dict | False
         """
+        # validation
         gcc_validators.are_params_string(course_id, announcement_id, assignee_mode)
 
         if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
             raise gcc_exceptions.AssigneeModeError()
 
-        announcement = {
+        body = {
             "assigneeMode": assignee_mode,
             "modifyIndividualStudentsOptions": {
                 "addStudentIds": add_student_ids,
@@ -198,7 +206,7 @@ class Teacher(GccBase):
             request: dict = self.classroom.courses().announcements().modify_assignment(
                 courseId=course_id,
                 id=announcement_id,
-                body=announcement
+                body=body
             ).execute()
 
             return request
@@ -206,9 +214,11 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    def detailed_patch_announcement(self):
+        pass ##########################__to_do__###############################
 
-    def patch_announcement(self, course_id: str, announcement_id: str, new_state: str = None,
-                           new_text: str = None, new_scheduled_time: str = None) -> dict | False:
+    def quick_patch_announcement(self, course_id: str, announcement_id: str, state: str = None,
+                                 text: str = None, scheduled_time: str = None) -> dict | False:
         """
         this func defines the patch_announcement method, updates one or more fields of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/patch
@@ -216,32 +226,32 @@ class Teacher(GccBase):
 
         :param course_id: either identifier of the course or assigned alias. 'string'
         :param announcement_id: Identifier of the announcement. 'string'
-        :param new_state: new announcement state ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']
-        :param new_text: new announcement text
-        :param new_scheduled_time: new scheduled time
+        :param state: new announcement state ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']
+        :param text: new announcement text
+        :param scheduled_time: new scheduled time
         :return: request dict | False
         """
+        # validation
         gcc_validators.are_params_string(course_id, announcement_id)
 
-        announcement: dict = {}
-        update_mask = ''
+        body: dict = dict()
 
-        if new_text:
-            gcc_validators.are_params_string(new_state)
-            announcement['text'] = new_text
-            update_mask += 'text,'
+        if text:
+            gcc_validators.are_params_string(state)
+            body['text'] = text
 
-        if new_state:
-            if new_state not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+        if state:
+            if state not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
                 raise gcc_exceptions.AnnouncementStateError()
-            announcement['state'] = new_state
-            update_mask += 'state,'
+            body['state'] = state
 
-        if new_scheduled_time:
-            gcc_validators.are_params_string(new_scheduled_time)
-            announcement['scheduledTime'] = new_scheduled_time
-            update_mask += 'scheduledTime,'
+        if scheduled_time:
+            if isinstance(scheduled_time, datetime.datetime) and \
+                    scheduled_time.tzinfo == pytz.utc:
+                raise gcc_exceptions.TimeStampError()
+            body['scheduledTime'] = scheduled_time
 
+        update_mask = ','.join(body.keys())
         update_mask = update_mask.rstrip(',')
 
         try:
@@ -249,32 +259,31 @@ class Teacher(GccBase):
                 courseId=course_id,
                 id=announcement_id,
                 updateMask=update_mask,
-                body=announcement
+                body=body
             ).execute()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
-    def detailed_course_work_create(self, course_id: str, course_json: bool = False) -> dict | False:
+    def detailed_course_work_create(self, course_id: str, course_work_json: bool = False) -> dict | False:
         """
         this func defines the detailed_course_work_create method, creates course work..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/create
         for more info
 
-        for detailed_course_work_create method the "detailed_course_work.json" stored at the data directory should be filled!!
+        for detailed_course_work_create method the "detailed_course_work.json" stored at the data_endpoint directory should be filled!!
         for more info: https://developers.google.com/classroom/reference/rest/v1/courses.courseWork#CourseWork
 
-        :param course_json: flag for indication if json is full True if not False 'bool'
+        :param course_work_json: flag for indication if json is full True if not False 'bool'
         :param course_id: either identifier of the course or assigned alias. 'string'
         :return: request dict or False
 
         """
-        if course_json:
-            raise gcc_exceptions.CourseJsonEmpty()
+        if not course_work_json:
+            raise gcc_exceptions.CourseWorkJsonEmpty()
 
-        with open('data/detailed_course_work.json', 'r') as fh:
+        with open('templates/detailed_course_work.json', 'r') as fh:
             body = json.load(fh)
         try:
             request: dict = self.classroom.courses().courseWork().create(courseId=course_id,
@@ -283,7 +292,6 @@ class Teacher(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
-
 
     def quick_course_work_create(self, course_id: str, title: str, description: str,
                                  material: list, work_type: str, state: str) -> dict | False:
@@ -327,7 +335,6 @@ class Teacher(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
-
 
     def delete_course_work(self, course_id: str, course_work_id: str) -> bool:
         """
@@ -382,6 +389,7 @@ class Teacher(GccBase):
 
         :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
         :param order_by: Optional sort ordering for results
+        :param page_token: Token identifying the next page of results to return. If empty, no further results are available 'string'
         :return: Tuple with a list of course work and nextPageToken value
         """
         gcc_validators.are_params_string(course_id)
@@ -411,8 +419,151 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    def modify_course_work_assignees(self, course_id: str, course_work_id: str, assignee_mode: str,
+                                     add_student_ids: list[str] = None,
+                                     remove_student_ids: list[str] = None) -> dict | False:
+        """
+        this func defines the modify_assignees method, modifies assignee mode and options of an announcement.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/modifyAssignees
+        for more info
 
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: Identifier of the course_work. 'string'
+        :param assignee_mode: modes of assigning coursework/announcements. ['ASSIGNEE_MODE_UNSPECIFIED',
+                                                                            'ALL_STUDENTS',
+                                                                            'INDIVIDUAL_STUDENTS']
+        :param add_student_ids: Set which students can view or cannot view the courseWork.
+        :param remove_student_ids: Set which students can view or cannot view the courseWork.
+        :return: request dict | False
+        """
+        gcc_validators.are_params_string(course_id, course_work_id, assignee_mode)
 
+        if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
+            raise gcc_exceptions.AssigneeModeError()
+
+        body = {
+            "assigneeMode": assignee_mode,
+            "modifyIndividualStudentsOptions": {
+                "addStudentIds": add_student_ids,
+                "removeStudentIds": remove_student_ids
+            }
+        }
+
+        try:
+            request: dict = self.classroom.courses().courseWork().modify_assignment(
+                courseId=course_id,
+                id=course_work_id,
+                body=body
+            ).execute()
+
+            return request
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def detailed_patch_course_work(self, course_id: str, course_work_id: str, course_work_json: bool = False):
+        """
+
+        :param course_id:
+        :param course_work_id:
+        :param course_work_json:
+        :return:
+        """
+        if not course_work_json:
+            raise gcc_exceptions.CourseWorkJsonEmpty()
+
+        with open('templates/detailed_course.json', 'r') as fh:
+            body = json.load(fh)
+
+        update_mask = ','.join(body.keys())
+        try:
+            request: dict = self.classroom.courses().courseWork().patch(
+                courseId=course_id,
+                id=course_work_id,
+                updateMask=update_mask,
+                body=body
+            ).execute()
+            return request
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def quick_patch_course_work(self, course_id: str, course_work_id: str, title: str = None,
+                                description: str = None, due_date: dict = None, due_time: dict = None,
+                                scheduled_time: datetime.datetime = None, state: str = None,
+                                materials: list = None) -> dict | False:
+        """
+        :param scheduled_time: https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp 'datetime.datetime'
+        :param due_time: Optional date, in UTC, that submissions for this course work are due.
+
+                         This must be specified if dueTime is specified.
+        :param due_date: Optional time of day, in UTC, that submissions for this course work are due.
+                         This must be specified if dueDate is specified.
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: either identifier of the course_work or assigned alias. 'string'
+        :param title: Title of this course work. The title must be a valid UTF-8 string containing between 1 and 3000 characters. 'string'
+        :param description: Optional description of this course work. If set,
+                            the description must be a valid UTF-8 string containing no more than 30,000 characters. 'string'
+
+        :param state: State of the course. If unspecified, the default state is PROVISIONED.
+                      see https://developers.google.com/classroom/reference/rest/v1/courses#CourseState
+
+        :param materials: Additional materials. Course must have no more than 20 material items. 'list[material]'
+                         see https://developers.google.com/classroom/reference/rest/v1/Material
+        :return: request dict or False
+        """
+
+        body: dict = dict()
+
+        if title:
+            gcc_validators.are_params_string(title)
+            body['title'] = title
+
+        if description:
+            gcc_validators.are_params_string(description)
+            body['description'] = description
+
+        if due_date:
+            if isinstance(due_date, dict):
+                raise TypeError()
+            body['dueDate'] = due_date
+
+        if due_time:
+            if isinstance(due_time, dict):
+                raise TypeError()
+            body['dueTime'] = due_date
+
+        if scheduled_time:
+            if isinstance(scheduled_time, datetime.datetime) and \
+                    scheduled_time.tzinfo == pytz.utc:
+                raise gcc_exceptions.TimeStampError()
+            body['scheduledTime'] = scheduled_time
+
+        if state:
+            if state not in ['COURSE_WORK_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+                raise gcc_exceptions.CourseWorkStateError()
+            body['state'] = description
+
+        if materials:
+            if isinstance(materials, list):
+                raise TypeError()
+            body['materials'] = materials
+
+        update_mask = ','.join(body.keys())
+        update_mask = update_mask.rstrip(',')
+
+        try:
+            request: dict = self.classroom.courses().courseWork().patch(
+                courseId=course_id,
+                id=course_work_id,
+                updateMask=update_mask,
+                body=body
+            ).execute()
+            return request
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
 
 
 if __name__ == '__main__':
