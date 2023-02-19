@@ -120,8 +120,28 @@ class Admin(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_course(self):
-        pass #############################_to_do_################################
+    def detailed_patch_course(self, course_id: str, course_json: bool) -> dict | False:
+        """
+        this func defines the detailed_patch_course method, modifies assignee mode and options of an announcement.
+        see https://developers.google.com/classroom/reference/rest/v1/courses/patch
+        for more info
+
+        :param course_json:
+        :param course_id:
+        :return:
+        """
+        if not course_json:
+            raise gcc_exceptions.CourseJsonEmpty()
+
+        with open('templates/detailed_course.json', 'r') as fh:
+            course_json = json.load(fh)
+        try:
+            request: dict = self.classroom.courses().patch(courseId=course_id, body=course_json).execute()
+            self._update_cache()
+            return request
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
 
     def quick_patch_course(self, course_id: str, name: str = None, state: str = None,
                            description: str = None, description_heading: str = None,
@@ -209,7 +229,7 @@ class Admin(GccBase):
         if not isinstance(course_id, str) and not isinstance(course_data, dict):
             raise TypeError()
 
-        course = {
+        body: dict = {
             'name': course_data.get('name'),
             'section': course_data.get('section'),
             'descriptionHeading': course_data.get('descriptionHeading'),
@@ -219,7 +239,7 @@ class Admin(GccBase):
             'ownerId': course_data.get('ownerId')
         }
         try:
-            self.classroom.courses().update(courseId=course_id, body=course).execute()
+            self.classroom.courses().update(courseId=course_id, body=body).execute()
             self._update_cache()
             return True
         except HttpError as error:
@@ -279,7 +299,7 @@ class Admin(GccBase):
                                  'PROVISIONED', 'DECLINED', 'SUSPENDED']:
             raise gcc_exceptions.CourseStateError()
 
-        query_params = {}
+        query_params: dict = dict()
         if student_id:
             query_params['studentId'] = student_id
         if teacher_id:
@@ -476,6 +496,7 @@ class Admin(GccBase):
             request = self.classroom.courses().teachers().list(courseId=course_id,
                                                                pageSize=page_size)
             if page_token:
+                gcc_validators.are_params_string(page_token)
                 request.pageToken = page_token
             teacher = request.execute()
             next_page_token = teacher.get("nextPageToken", None)
