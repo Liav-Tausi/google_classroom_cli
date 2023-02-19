@@ -6,7 +6,7 @@ from gcc_base import GccBase
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-import re
+
 from googleapiclient.errors import HttpError
 import gcc_exceptions
 import gcc_validators
@@ -20,20 +20,44 @@ class Teacher(GccBase):
             raise gcc_exceptions.InvalidRole()
         super().__init__(role, ref_cache_month, work_space, email)
 
-    def create_announcement(self, course_id: str, announcement_text: str, materials: dict,
-                            state: dict, scheduled_time: str, alternate_link: str = None,
-                            creation_time: str = None, update_time: str = None, assignee_mode: dict = None,
-                            individual_students_options: dict = None) -> bool:
+    def detailed_create_announcement(self, course_id: str, announcement_json: bool = False) -> dict | False:
+        """
+        this func defines the detailed_create_announcement method, creates a detailed announcement
+        see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/create
+        for more info
+
+
+        :return:
+        """
+        if not announcement_json:
+            raise gcc_exceptions.AnnouncementJsonEmpty()
+
+        with open("templates/detailed_announcement.json", 'r') as fh:
+            body = json.load(fh)
+        try:
+            request: dict = self.classroom.courses().announcements().create(
+                courseId=course_id,
+                body=body
+            ).execute()
+            self._update_cache()
+            return request
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+
+    def quick_create_announcement(self, course_id: str, announcement_text: str, materials: dict, state: dict,
+                                  scheduled_time: str, update_time: datetime.datetime = None, assignee_mode: dict = None,
+                                  students_options: list = None) -> dict | False:
         """
         this func defines the create_announcement method, create an announcement with the following params
 
-        :param individual_students_options: individual_students_options object
+        :param students_options: individual_students_options object
                https://developers.google.com/classroom/reference/rest/v1/IndividualStudentsOptions
                for object representation
                
-        :param assignee_mode: 'string'
-        :param update_time: 'string'
-        :param creation_time: 'string'
+        :param assignee_mode: Status of this announcement. If unspecified, the default state is DRAFT. 'string'
+        :param update_time: Timestamp of the most recent change to this announcement. 'string'
         :param alternate_link: 'string'
         :param scheduled_time: 'string'
         :param state: announcement state 
@@ -49,31 +73,33 @@ class Teacher(GccBase):
         :return: True
         """
         # validation
-        gcc_validators.are_params_string(announcement_text, course_id, creation_time,
-                                         assignee_mode, update_time, scheduled_time)
+        gcc_validators.are_params_string(announcement_text, course_id, assignee_mode, update_time, scheduled_time)
 
         if state not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
             raise gcc_exceptions.AnnouncementStateError()
+
+        if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
+            raise gcc_exceptions.AssigneeModeError()
 
         announcement = {
             "text": announcement_text,
             "materials": [materials],
             "state": state,
-            "alternateLink": alternate_link,
-            "creationTime": creation_time,
             "updateTime": update_time,
             "scheduledTime": scheduled_time,
             "assigneeMode": assignee_mode,
-            "individualStudentsOptions": {individual_students_options},
+            "individualStudentsOptions": {
+                "studentIds": students_options
+            },
             "creatorUserId": self.check
         }
         try:
-            self.classroom.courses().announcements().create(
+            request: dict = self.classroom.courses().announcements().create(
                 courseId=course_id,
                 body=announcement
             ).execute()
             self._update_cache()
-            return True
+            return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -162,7 +188,11 @@ class Teacher(GccBase):
         if page_token:
             query_params['pageToken'] = page_token
         try:
-            request: dict = self.classroom.courses().announcements().list(**query_params).execute()
+            request = self.classroom.courses().announcements().list(**query_params)
+            if page_token:
+                gcc_validators.are_params_string(page_token)
+                request.pageToken = page_token
+            request.execute()
             announcements = request.get("courses", [])
             next_page_token = request.get("nextPageToken", None)
             self._update_cache()
@@ -194,7 +224,7 @@ class Teacher(GccBase):
         if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
             raise gcc_exceptions.AssigneeModeError()
 
-        body = {
+        body: dict = {
             "assigneeMode": assignee_mode,
             "modifyIndividualStudentsOptions": {
                 "addStudentIds": add_student_ids,
@@ -208,14 +238,34 @@ class Teacher(GccBase):
                 id=announcement_id,
                 body=body
             ).execute()
-
+            self._update_cache()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_announcement(self):
-        pass ##########################__to_do__###############################
+    def detailed_patch_announcement(self, course_id: str) -> dict | False:
+        """
+        this func defines the detailed_patch_announcement method, modifies detailed options of an announcement.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/patch
+        for more info
+
+        param: course_id: either identifier of the course or assigned alias. 'string'
+        :return: request dict | False
+        """
+        with open('templates/detailed_announcement.json', 'r') as fh:
+            body = json.load(fh)
+        try:
+            request: dict = self.classroom.courses().announcements().create(
+                courseId=course_id,
+                body=body
+            ).execute()
+            self._update_cache()
+            return request
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
 
     def quick_patch_announcement(self, course_id: str, announcement_id: str, state: str = None,
                                  text: str = None, scheduled_time: str = None) -> dict | False:
@@ -261,6 +311,7 @@ class Teacher(GccBase):
                 updateMask=update_mask,
                 body=body
             ).execute()
+            self._update_cache()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -286,8 +337,11 @@ class Teacher(GccBase):
         with open('templates/detailed_course_work.json', 'r') as fh:
             body = json.load(fh)
         try:
-            request: dict = self.classroom.courses().courseWork().create(courseId=course_id,
-                                                                         body=body).execute()
+            request: dict = self.classroom.courses().courseWork().create(
+                courseId=course_id,
+                body=body
+            ).execute()
+            self._update_cache()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -329,8 +383,11 @@ class Teacher(GccBase):
             'state': state,
         }
         try:
-            request: dict = self.classroom.courses().courseWork().create(courseId=course_id,
-                                                                         body=body).execute()
+            request: dict = self.classroom.courses().courseWork().create(
+                courseId=course_id,
+                body=body
+            ).execute()
+            self._update_cache()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -348,8 +405,11 @@ class Teacher(GccBase):
         """
         gcc_validators.are_params_string(course_id, course_work_id)
         try:
-            self.classroom.courses().courseWork().delete(courseId=course_id,
-                                                         id=course_work_id).execute()
+            self.classroom.courses().courseWork().delete(
+                courseId=course_id,
+                id=course_work_id
+            ).execute()
+            self._update_cache()
             return True
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -367,8 +427,11 @@ class Teacher(GccBase):
         """
         gcc_validators.are_params_string(course_id, course_work_id)
         try:
-            self.classroom.courses().courseWork().get(courseId=course_id,
-                                                      id=course_work_id).execute()
+            self.classroom.courses().courseWork().get(
+                courseId=course_id,
+                id=course_work_id
+            ).execute()
+            self._update_cache()
             return True
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -411,9 +474,15 @@ class Teacher(GccBase):
             query_params['pageToken'] = page_token
 
         try:
-            request: dict = self.classroom.courses().courseWork().list(**query_params).execute()
+            request= self.classroom.courses().courseWork().list(**query_params)
+            if page_token:
+                gcc_validators.are_params_string(page_token)
+                request.pageToken = page_token
+            request.execute()
             course_work_list = request.get("courseWork", [])
             next_page_token = request.get("nextPageToken", None)
+
+            self._update_cache()
             return course_work_list, next_page_token
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -423,7 +492,7 @@ class Teacher(GccBase):
                                      add_student_ids: list[str] = None,
                                      remove_student_ids: list[str] = None) -> dict | False:
         """
-        this func defines the modify_assignees method, modifies assignee mode and options of an announcement.
+        this func defines the modify_assignees method, Modifies assignee mode and options of a coursework.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/modifyAssignees
         for more info
 
@@ -441,7 +510,7 @@ class Teacher(GccBase):
         if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
             raise gcc_exceptions.AssigneeModeError()
 
-        body = {
+        body: dict = {
             "assigneeMode": assignee_mode,
             "modifyIndividualStudentsOptions": {
                 "addStudentIds": add_student_ids,
@@ -455,7 +524,7 @@ class Teacher(GccBase):
                 id=course_work_id,
                 body=body
             ).execute()
-
+            self._update_cache()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -463,10 +532,13 @@ class Teacher(GccBase):
 
     def detailed_patch_course_work(self, course_id: str, course_work_id: str, course_work_json: bool = False):
         """
+        this func defines the detailed_patch_course_work method, updates one or more fields of a course work.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/patch
+        for more info
 
-        :param course_id:
-        :param course_work_id:
-        :param course_work_json:
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: either identifier of the course_work or assigned alias. 'string'
+        :param course_work_json: detailed course_json needs to be full
         :return:
         """
         if not course_work_json:
@@ -483,6 +555,7 @@ class Teacher(GccBase):
                 updateMask=update_mask,
                 body=body
             ).execute()
+            self._update_cache()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -560,6 +633,7 @@ class Teacher(GccBase):
                 updateMask=update_mask,
                 body=body
             ).execute()
+            self._update_cache()
             return request
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
