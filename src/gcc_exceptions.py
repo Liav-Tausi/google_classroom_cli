@@ -88,6 +88,11 @@ class CourseWorkJsonEmpty(GccErrors):
         super().__init__('CourseWork json is not full.')
 
 
+class AnnouncementJsonEmpty(GccErrors):
+    def __init__(self):
+        super().__init__('Announcement json is not full.')
+
+
 class CourseJsonEmpty(GccErrors):
     def __init__(self):
         super().__init__('Course json is not full.')
