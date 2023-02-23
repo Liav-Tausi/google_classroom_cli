@@ -6,7 +6,6 @@ from gcc_base import GccBase
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-
 from googleapiclient.errors import HttpError
 import gcc_exceptions
 import gcc_validators
@@ -20,7 +19,7 @@ class Teacher(GccBase):
             raise gcc_exceptions.InvalidRole()
         super().__init__(role, ref_cache_month, work_space, email)
 
-    def detailed_create_announcement(self, course_id: str, announcement_json: bool = False) -> dict | False:
+    def detailed_create_announcement(self, announcement_json: bool = False) -> dict | False:
         """
         this func defines the detailed_create_announcement method, creates a detailed announcement
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/create
@@ -35,19 +34,16 @@ class Teacher(GccBase):
         with open("templates/detailed_announcement.json", 'r') as fh:
             body = json.load(fh)
         try:
-            request: dict = self.classroom.courses().announcements().create(
-                courseId=course_id,
-                body=body
-            ).execute()
+            response: dict = self.classroom.courses().announcements().create(**body).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
     def quick_create_announcement(self, course_id: str, announcement_text: str, materials: dict, state: dict,
-                                  scheduled_time: str, update_time: datetime.datetime = None, assignee_mode: dict = None,
+                                  scheduled_time: str, update_time: str = None,
+                                  assignee_mode: dict = None,
                                   students_options: list = None) -> dict | False:
         """
         this func defines the create_announcement method, create an announcement with the following params
@@ -94,12 +90,12 @@ class Teacher(GccBase):
             "creatorUserId": self.check
         }
         try:
-            request: dict = self.classroom.courses().announcements().create(
+            response: dict = self.classroom.courses().announcements().create(
                 courseId=course_id,
                 body=announcement
             ).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -140,18 +136,18 @@ class Teacher(GccBase):
 
         :param course_id: either identifier of the course or assigned alias. 'string'
         :param announcement_id: announcement's id 'string'
-        :return: request dict | False
+        :return: response dict | False
         """
         # validation
         gcc_validators.are_params_string(course_id, announcement_id)
 
         try:
-            request: dict = self.classroom.courses().announcements().get(
+            response: dict = self.classroom.courses().announcements().get(
                 courseId=course_id,
                 id=announcement_id
             )
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -169,32 +165,35 @@ class Teacher(GccBase):
         :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
         :param order_by: Optional sort ordering for results
         :param page_token: https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list#body.ListAnnouncementsResponse.FIELDS.next_page_token
-        :return: request dict | False
+        :return: response dict | False
         """
-        # validation
-        gcc_validators.are_params_string(ann_states, page_token, order_by)
-        gcc_validators.are_params_int(page_size)
+        query_params: dict = dict()
 
-        if ann_states not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
-            raise gcc_exceptions.AnnouncementStateError()
-
-        query_params: dict = {}
         if ann_states:
+            if ann_states not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+                raise gcc_exceptions.AnnouncementStateError()
             query_params['announcementStates'] = ann_states
+
         if order_by:
+            gcc_validators.are_params_string(order_by)
             query_params['orderBy'] = order_by
+
         if page_size:
-            query_params['pageSize'] = str(page_size)
+            gcc_validators.are_params_int(page_size)
+            query_params['pageSize'] = page_size
+
         if page_token:
+            gcc_validators.are_params_string(page_token)
             query_params['pageToken'] = page_token
+
         try:
-            request = self.classroom.courses().announcements().list(**query_params)
+            response = self.classroom.courses().announcements().list(**query_params)
             if page_token:
                 gcc_validators.are_params_string(page_token)
-                request.pageToken = page_token
-            request.execute()
-            announcements = request.get("courses", [])
-            next_page_token = request.get("nextPageToken", None)
+                response.pageToken = page_token
+            response.execute()
+            announcements = response.get("courses", [])
+            next_page_token = response.get("nextPageToken", None)
             self._update_cache()
             return announcements, next_page_token
         except HttpError as error:
@@ -216,7 +215,7 @@ class Teacher(GccBase):
                                                                             'INDIVIDUAL_STUDENTS']
         :param add_student_ids: Set which students can view or cannot view the announcement.
         :param remove_student_ids: Set which students can view or cannot view the announcement.
-        :return: request dict | False
+        :return: response dict | False
         """
         # validation
         gcc_validators.are_params_string(course_id, announcement_id, assignee_mode)
@@ -233,39 +232,38 @@ class Teacher(GccBase):
         }
 
         try:
-            request: dict = self.classroom.courses().announcements().modify_assignment(
+            response: dict = self.classroom.courses().announcements().modify_assignment(
                 courseId=course_id,
                 id=announcement_id,
                 body=body
             ).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_announcement(self, course_id: str) -> dict | False:
+    def detailed_patch_announcement(self, detailed_announcement_json: bool = False) -> dict | False:
         """
         this func defines the detailed_patch_announcement method, modifies detailed options of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/patch
         for more info
 
-        param: course_id: either identifier of the course or assigned alias. 'string'
-        :return: request dict | False
+        param: detailed_announcement_json: flag for indication if json is full True if not False 'bool'
+        :return: response dict | False
         """
+        if not detailed_announcement_json:
+            raise gcc_exceptions.AnnouncementJsonEmpty()
+
         with open('templates/detailed_announcement.json', 'r') as fh:
             body = json.load(fh)
         try:
-            request: dict = self.classroom.courses().announcements().create(
-                courseId=course_id,
-                body=body
-            ).execute()
+            response: dict = self.classroom.courses().announcements().create(**body).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
-
 
     def quick_patch_announcement(self, course_id: str, announcement_id: str, state: str = None,
                                  text: str = None, scheduled_time: str = None) -> dict | False:
@@ -279,7 +277,7 @@ class Teacher(GccBase):
         :param state: new announcement state ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']
         :param text: new announcement text
         :param scheduled_time: new scheduled time
-        :return: request dict | False
+        :return: response dict | False
         """
         # validation
         gcc_validators.are_params_string(course_id, announcement_id)
@@ -302,22 +300,21 @@ class Teacher(GccBase):
             body['scheduledTime'] = scheduled_time
 
         update_mask = ','.join(body.keys())
-        update_mask = update_mask.rstrip(',')
 
         try:
-            request: dict = self.classroom.courses().announcements().patch(
+            response: dict = self.classroom.courses().announcements().patch(
                 courseId=course_id,
                 id=announcement_id,
                 updateMask=update_mask,
                 body=body
             ).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_course_work_create(self, course_id: str, course_work_json: bool = False) -> dict | False:
+    def detailed_course_work_create(self, course_work_json: bool = False) -> dict | False:
         """
         this func defines the detailed_course_work_create method, creates course work..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/create
@@ -327,8 +324,7 @@ class Teacher(GccBase):
         for more info: https://developers.google.com/classroom/reference/rest/v1/courses.courseWork#CourseWork
 
         :param course_work_json: flag for indication if json is full True if not False 'bool'
-        :param course_id: either identifier of the course or assigned alias. 'string'
-        :return: request dict or False
+        :return: response dict or False
 
         """
         if not course_work_json:
@@ -337,12 +333,9 @@ class Teacher(GccBase):
         with open('templates/detailed_course_work.json', 'r') as fh:
             body = json.load(fh)
         try:
-            request: dict = self.classroom.courses().courseWork().create(
-                courseId=course_id,
-                body=body
-            ).execute()
+            response: dict = self.classroom.courses().courseWork().create(**body).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -360,7 +353,7 @@ class Teacher(GccBase):
         :param description: a course_work description 'string'
         :param title: a course_work title 'string'
         :param course_id: either identifier of the course or assigned alias. 'string'
-        :return: request dict or False
+        :return: response dict or False
 
         """
         gcc_validators.are_params_string(course_id, title, description, work_type, state)
@@ -383,12 +376,12 @@ class Teacher(GccBase):
             'state': state,
         }
         try:
-            request: dict = self.classroom.courses().courseWork().create(
+            response: dict = self.classroom.courses().courseWork().create(
                 courseId=course_id,
                 body=body
             ).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -441,7 +434,7 @@ class Teacher(GccBase):
                          order_by: str = 'updateTime desc', page_size: int = 10,
                          page_token: str = None) -> tuple[list[dict], str] | False:
         """
-        this func defines the get_course_work method, Returns a list of course work that the requester is permitted to view.
+        this func defines the get_course_work method, Returns a list of course work that the responseer is permitted to view.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/list
         for more info
 
@@ -456,31 +449,36 @@ class Teacher(GccBase):
         :return: Tuple with a list of course work and nextPageToken value
         """
         gcc_validators.are_params_string(course_id)
-        if course_work_states is not None:
-            for state in course_work_states:
-                if state not in ['COURSE_WORK_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
-                    raise gcc_exceptions.CourseWorkStateError()
-
         gcc_validators.are_params_int(page_size)
 
         query_params = {'courseId': course_id}
+
         if course_work_states:
+            for state in course_work_states:
+                if state not in ['COURSE_WORK_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+                    raise gcc_exceptions.CourseWorkStateError()
             query_params['courseWorkStates'] = course_work_states
+
         if order_by:
+            gcc_validators.are_params_string(order_by)
             query_params['orderBy'] = order_by
+
         if page_size:
+            gcc_validators.are_params_int(page_size)
             query_params['pageSize'] = page_size
+
         if page_token:
+            gcc_validators.are_params_string(page_token)
             query_params['pageToken'] = page_token
 
         try:
-            request= self.classroom.courses().courseWork().list(**query_params)
+            response = self.classroom.courses().courseWork().list(**query_params)
             if page_token:
                 gcc_validators.are_params_string(page_token)
-                request.pageToken = page_token
-            request.execute()
-            course_work_list = request.get("courseWork", [])
-            next_page_token = request.get("nextPageToken", None)
+                response.pageToken = page_token
+            response.execute()
+            course_work_list = response.get("courseWork", [])
+            next_page_token = response.get("nextPageToken", None)
 
             self._update_cache()
             return course_work_list, next_page_token
@@ -503,7 +501,7 @@ class Teacher(GccBase):
                                                                             'INDIVIDUAL_STUDENTS']
         :param add_student_ids: Set which students can view or cannot view the courseWork.
         :param remove_student_ids: Set which students can view or cannot view the courseWork.
-        :return: request dict | False
+        :return: response dict | False
         """
         gcc_validators.are_params_string(course_id, course_work_id, assignee_mode)
 
@@ -519,28 +517,27 @@ class Teacher(GccBase):
         }
 
         try:
-            request: dict = self.classroom.courses().courseWork().modify_assignment(
+            response: dict = self.classroom.courses().courseWork().modify_assignment(
                 courseId=course_id,
                 id=course_work_id,
                 body=body
             ).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_course_work(self, course_id: str, course_work_id: str, course_work_json: bool = False):
+    def detailed_patch_course_work(self, course_work_json: bool = False) -> dict | False:
         """
         this func defines the detailed_patch_course_work method, updates one or more fields of a course work.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/patch
         for more info
 
-        :param course_id: either identifier of the course or assigned alias. 'string'
-        :param course_work_id: either identifier of the course_work or assigned alias. 'string'
         :param course_work_json: detailed course_json needs to be full
-        :return:
+        :return: response dict or False
         """
+
         if not course_work_json:
             raise gcc_exceptions.CourseWorkJsonEmpty()
 
@@ -549,14 +546,12 @@ class Teacher(GccBase):
 
         update_mask = ','.join(body.keys())
         try:
-            request: dict = self.classroom.courses().courseWork().patch(
-                courseId=course_id,
-                id=course_work_id,
+            response: dict = self.classroom.courses().courseWork().patch(
+                **body,
                 updateMask=update_mask,
-                body=body
             ).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -566,6 +561,10 @@ class Teacher(GccBase):
                                 scheduled_time: datetime.datetime = None, state: str = None,
                                 materials: list = None) -> dict | False:
         """
+        this func defines the quick_patch_course_work, updates one or more fields of a course work.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/patch
+        for more info
+
         :param scheduled_time: https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp 'datetime.datetime'
         :param due_time: Optional date, in UTC, that submissions for this course work are due.
 
@@ -584,7 +583,7 @@ class Teacher(GccBase):
 
         :param materials: Additional materials. Course must have no more than 20 material items. 'list[material]'
                          see https://developers.google.com/classroom/reference/rest/v1/Material
-        :return: request dict or False
+        :return: response dict or False
         """
 
         body: dict = dict()
@@ -624,17 +623,277 @@ class Teacher(GccBase):
             body['materials'] = materials
 
         update_mask = ','.join(body.keys())
-        update_mask = update_mask.rstrip(',')
 
         try:
-            request: dict = self.classroom.courses().courseWork().patch(
+            response: dict = self.classroom.courses().courseWork().patch(
                 courseId=course_id,
                 id=course_work_id,
                 updateMask=update_mask,
                 body=body
             ).execute()
             self._update_cache()
-            return request
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def get_student_submissions(self, course_id: str, course_work_id: str,
+                                submission_id: str) -> dict | False:
+        """
+        this func defines the get_student_submissions, returns a student submission.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/get
+        for more info
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: identifier of the course work. 'string'
+        :param submission_id: identifier of the student submission. 'string'
+        :return: response dict or False
+        """
+        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
+        try:
+            response = self.classroom.courses().courseWork().studentSubmissions().get(
+                courseId=course_id,
+                courseWorkId=course_work_id,
+                id=submission_id
+            ).execute()
+            self._update_cache()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def list_student_submissions(self, course_id: str, course_work_id: str, user_id: str,
+                                 page_size: int = 10, sub_states: list[str] = 'SUBMISSION_STATE_UNSPECIFIED',
+                                 late: str = 'LATE_VALUES_UNSPECIFIED', page_token: str = None) -> dict | False:
+        """
+        this func defines the list_student_submissions, Returns a list of student submissions that the requester is permitted to view,
+        factoring in the OAuth scopes of the request. - may be specified as the courseWorkId to include student submissions
+        for multiple course work items.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/list
+        for more info
+
+        :param page_token: nextPageToken value returned from a previous list call,
+                          indicating that the subsequent page of results should be returned.
+                          The list request must be otherwise identical to the one that resulted in this token.
+
+        :param page_size: maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum. 'int'
+
+        :param late: requested lateness value. if specified, returned student submissions are restricted by the requested value.
+                     if unspecified, submissions are returned regardless of late value.
+
+        :param user_id: optional argument to restrict returned student work to those owned by the student with the specified identifier.
+                        the identifier can be one of the following: {
+                            the numeric identifier for the user,
+                            the email address of the user ,
+                            the string literal "me" indicating the requesting user
+                        }
+        :param sub_states: requested submission states. If specified, returned student submissions match one of the specified submission states.
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: identifier of the course work. 'string'
+        :return: response dict or False
+        """
+        gcc_validators.are_params_string(course_id, course_work_id)
+
+        query_params: dict = dict()
+
+        if user_id:
+            gcc_validators.are_params_string(user_id)
+            query_params['userId'] = user_id
+
+        if sub_states:
+            gcc_validators.are_params_string(sub_states)
+            for state in sub_states:
+                if state not in ['SUBMISSION_STATE_UNSPECIFIED', 'NEW', 'CREATED',
+                                 'TURNED_IN', 'RETURNED', 'RECLAIMED_BY_STUDENT']:
+                    raise gcc_exceptions.SubmissionStateError()
+            query_params['states'] = sub_states
+
+        if late:
+            gcc_validators.are_params_string(late)
+            for late_value in late:
+                if late_value not in ['LATE_VALUES_UNSPECIFIED', 'LATE_ONLY', 'NOT_LATE_ONLY']:
+                    raise gcc_exceptions.SubmissionLateValueError()
+            query_params['late'] = late
+
+        if page_size:
+            gcc_validators.are_params_int(page_size)
+            query_params['pageSize'] = page_size
+
+        if page_token:
+            gcc_validators.are_params_string(page_token)
+            query_params['pageToken'] = page_token
+
+        try:
+            response = self.classroom.courses().studentSubmissions().list(
+                courseId=course_id,
+                courseWorkId=course_work_id,
+                **query_params
+            ).execute()
+            if page_token:
+                gcc_validators.are_params_string(page_token)
+                response.pageToken = page_token
+            response.execute()
+            student_submissions = response.get("studentSubmissions", [])
+            next_page_token = response.get("nextPageToken", None)
+
+            self._update_cache()
+            return student_submissions, next_page_token
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def modify_submissions_attachments(self, course_id: str, course_work_id: str, submission_id: str,
+                                       materials: dict) -> dict | False:
+        """
+        this func defines the modify_submissions_attachments, modifies attachments of student submission..
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/modifyAttachments
+        for more info
+
+        :param materials: attachments to add. A student submission may not have more than 20 attachments.
+                          Form attachments are not supported.
+                          see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions#Attachment
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: identifier of the course work. 'string'
+        :param submission_id: identifier of the student submission. 'string'
+        :return: response dict or False
+        """
+        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
+        if not isinstance(materials, dict):
+            raise TypeError()
+
+        body: dict = {
+            "addAttachments": [
+                {materials}
+            ]
+        }
+        try:
+            response = self.classroom.courses().courseWork().studentSubmissions().modifyAttachments(
+                courseId=course_id,
+                courseWorkId=course_work_id,
+                id=submission_id,
+                body=body
+            ).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def detailed_patch_student_submissions(self, students_submissions_json: bool = False) -> dict | False:
+        """
+        this func defines the detailed_patch_student_submissions, updates one or more fields of a student submission.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/patch
+        for more info
+
+        :param students_submissions_json: flag for indication if json is full True if not False 'bool'
+        :return: response dict or False
+        """
+        if not students_submissions_json:
+            raise gcc_exceptions.StudentsSubmissionsError()
+
+        with open('templates/detailed_students_submissions.json', 'r') as fh:
+            body = json.load(fh)
+
+        update_mask = ','.join(body.keys())
+
+        try:
+            response: dict = self.classroom.courses().courseWork().studentSubmissions().patch(
+                **body,
+                updateMask=update_mask,
+            ).execute()
+            self._update_cache()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def quick_patch_student_submissions(self, course_id: str, course_work_id: str, submission_id: str, sub_states: list[str] = None,
+                                        assigned_grade: int = None, short_answer: str = None, alternate_link: str = None,
+                                        assignment_submission: dict = None) -> dict | False:
+        """
+        this func defines the quick_patch_student_submissions, updates one or more fields of a student submission.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/patch
+        for more info
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: identifier of the course work. 'string'
+        :param submission_id: identifier of the student submission. 'string'
+
+        :param sub_states: requested submission states.
+                          if specified, returned student submissions match one of the specified submission states.
+
+        :param assigned_grade: optional grade. if unset, no grade was set. This value must be non-negative.
+                               decimal (that is, non-integer) values are allowed, but are rounded to two decimal places.
+
+        :param short_answer: submission content when courseWorkType is SHORT_ANSWER_QUESTION.
+                             see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions#ShortAnswerSubmission
+
+        :param alternate_link: absolute link to the submission in the Classroom web UI.
+
+        :param assignment_submission: submission content when courseWorkType is ASSIGNMENT.
+                                      see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions#AssignmentSubmission
+        :return: response dict or False
+        """
+        body: dict = dict()
+
+        if sub_states:
+            gcc_validators.are_params_string(sub_states)
+            for state in sub_states:
+                if state not in ['SUBMISSION_STATE_UNSPECIFIED', 'NEW', 'CREATED',
+                                 'TURNED_IN', 'RETURNED', 'RECLAIMED_BY_STUDENT']:
+                    raise gcc_exceptions.SubmissionStateError()
+            body['state'] = sub_states
+
+        if assigned_grade:
+            gcc_validators.are_params_int(assigned_grade)
+            body['assignedGrade'] = assigned_grade
+
+        if short_answer:
+            gcc_validators.are_params_string(short_answer)
+            body['shortAnswerSubmission'] = {"answer": short_answer}
+
+        if alternate_link:
+            gcc_validators.are_params_string(alternate_link)
+            body['alternateLink'] = alternate_link
+
+        if assignment_submission:
+            body['assignmentSubmission'] = {"attachments": [{assignment_submission}]}
+
+        update_mask = ','.join(body.keys())
+
+        try:
+            response: dict = self.classroom.courses().courseWork().studentSubmissions().patch(
+                courseId=course_id,
+                courseWorkId=course_work_id,
+                id=submission_id,
+                updateMask=update_mask,
+                body=body
+            ).execute()
+            self._update_cache()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def return_student_submissions(self, course_id: str, course_work_id: str, submission_id: str) -> dict | False:
+        """
+        this func defines the return_student_submissions, returns a student submission.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/return
+        for more info
+
+         :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: identifier of the course work. 'string'
+        :param submission_id: identifier of the student submission. 'string'
+        :return: response dict or False
+        """
+        try:
+            response = self.classroom.courses().courseWork().studentSubmissions().return_(
+                courseId=course_id,
+                courseWorkId=course_work_id,
+                id=submission_id
+            ).execute()
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
