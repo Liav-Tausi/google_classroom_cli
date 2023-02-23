@@ -1,0 +1,24 @@
+{
+  "courseId": "",
+  "courseWorkId": "",
+  "id": "",
+  "userId": "",
+  "creationTime": "",
+  "updateTime": "",
+  "state": "",
+  "late": false,
+  "draftGrade": 100,
+  "assignedGrade": 100,
+  "alternateLink": "",
+  "courseWorkType": "",
+  "associatedWithDeveloper": true,
+  "submissionHistory": [
+      "object (SubmissionHistory)"
+  ],
+  "assignmentSubmission":
+    "object (AssignmentSubmission)",
+  "shortAnswerSubmission":
+    "object (ShortAnswerSubmission)",
+  "multipleChoiceSubmission":
+    "object (MultipleChoiceSubmission)"
+}
