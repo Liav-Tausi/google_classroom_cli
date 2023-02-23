@@ -201,7 +201,6 @@ class Admin(GccBase):
             body['materials'] = materials
 
         update_mask = ','.join(body.keys())
-        update_mask = update_mask.rstrip(',')
 
         try:
             self.classroom.courses().patch(
