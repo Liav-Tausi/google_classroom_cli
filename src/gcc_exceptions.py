@@ -103,9 +103,19 @@ class AnnouncementJsonEmpty(GccErrors):
         super().__init__('Announcement json is not full.')
 
 
-class StudentsSubmissionsError(GccErrors):
+class StudentsSubmissionsJsonEmpty(GccErrors):
     def __init__(self):
         super().__init__('StudentsSubmissions json is not full.')
+
+
+class CourseWorkMaterialJsonEmpty(GccErrors):
+    def __init__(self):
+        super().__init__('StudentsSubmissions json is not full.')
+
+
+class CourseWorkMaterialStateError(GccErrors):
+    def __init__(self):
+        super().__init__('CourseWorkMaterial state should be in [DELETED, DRAFT, PUBLISHED, COURSEWORK_MATERIAL_STATE_UNSPECIFIED].')
 
 
 class CourseJsonEmpty(GccErrors):
