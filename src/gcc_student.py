@@ -38,10 +38,9 @@ class Student(GccBase):
             return False
 
 
-    def tern_in_submission(self, c, course_id: str, course_work_id: str, submission_id: str) -> bool:
+    def tern_in_submission(self, course_id: str, course_work_id: str, submission_id: str) -> bool:
         """
 
-        :param c:
         :param course_id:
         :param course_work_id:
         :param submission_id:
