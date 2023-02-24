@@ -31,7 +31,7 @@ class Teacher(GccBase):
         if not announcement_json:
             raise gcc_exceptions.AnnouncementJsonEmpty()
 
-        with open("templates/detailed_announcement.json", 'r') as fh:
+        with open("templates/detailed_announcement.json", 'r', encoding='utf-8') as fh:
             body = json.load(fh)
         try:
             response: dict = self.classroom.courses().announcements().create(**body).execute()
@@ -184,14 +184,10 @@ class Teacher(GccBase):
 
         if page_token:
             gcc_validators.are_params_string(page_token)
-            query_params['pageToken'] = page_token
+            query_params['nextPageToken'] = page_token
 
         try:
             response = self.classroom.courses().announcements().list(**query_params)
-            if page_token:
-                gcc_validators.are_params_string(page_token)
-                response.pageToken = page_token
-            response.execute()
             announcements = response.get("courses", [])
             next_page_token = response.get("nextPageToken", None)
             self._update_cache()
@@ -255,7 +251,7 @@ class Teacher(GccBase):
         if not detailed_announcement_json:
             raise gcc_exceptions.AnnouncementJsonEmpty()
 
-        with open('templates/detailed_announcement.json', 'r') as fh:
+        with open('templates/detailed_announcement.json', 'r', encoding='utf-8') as fh:
             body = json.load(fh)
         try:
             response: dict = self.classroom.courses().announcements().create(**body).execute()
@@ -330,7 +326,7 @@ class Teacher(GccBase):
         if not course_work_json:
             raise gcc_exceptions.CourseWorkJsonEmpty()
 
-        with open('templates/detailed_course_work.json', 'r') as fh:
+        with open('templates/detailed_course_work.json', 'r', encoding='utf-8') as fh:
             body = json.load(fh)
         try:
             response: dict = self.classroom.courses().courseWork().create(**body).execute()
@@ -469,14 +465,10 @@ class Teacher(GccBase):
 
         if page_token:
             gcc_validators.are_params_string(page_token)
-            query_params['pageToken'] = page_token
+            query_params['nextPageToken'] = page_token
 
         try:
             response = self.classroom.courses().courseWork().list(**query_params)
-            if page_token:
-                gcc_validators.are_params_string(page_token)
-                response.pageToken = page_token
-            response.execute()
             course_work_list = response.get("courseWork", [])
             next_page_token = response.get("nextPageToken", None)
 
@@ -541,7 +533,7 @@ class Teacher(GccBase):
         if not course_work_json:
             raise gcc_exceptions.CourseWorkJsonEmpty()
 
-        with open('templates/detailed_course.json', 'r') as fh:
+        with open('templates/detailed_course.json', 'r', encoding='utf-8') as fh:
             body = json.load(fh)
 
         update_mask = ','.join(body.keys())
@@ -558,7 +550,7 @@ class Teacher(GccBase):
 
     def quick_patch_course_work(self, course_id: str, course_work_id: str, title: str = None,
                                 description: str = None, due_date: dict = None, due_time: dict = None,
-                                scheduled_time: datetime.datetime = None, state: str = None,
+                                scheduled_time: datetime.datetime = None, state: list[str] = None,
                                 materials: list = None) -> dict | False:
         """
         this func defines the quick_patch_course_work, updates one or more fields of a course work.
@@ -637,8 +629,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def get_student_submissions(self, course_id: str, course_work_id: str,
-                                submission_id: str) -> dict | False:
+    def get_student_submissions(self, course_id: str, course_work_id: str, submission_id: str) -> dict | False:
         """
         this func defines the get_student_submissions, returns a student submission.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/get
@@ -702,7 +693,6 @@ class Teacher(GccBase):
             query_params['userId'] = user_id
 
         if sub_states:
-            gcc_validators.are_params_string(sub_states)
             for state in sub_states:
                 if state not in ['SUBMISSION_STATE_UNSPECIFIED', 'NEW', 'CREATED',
                                  'TURNED_IN', 'RETURNED', 'RECLAIMED_BY_STUDENT']:
@@ -722,7 +712,7 @@ class Teacher(GccBase):
 
         if page_token:
             gcc_validators.are_params_string(page_token)
-            query_params['pageToken'] = page_token
+            query_params['nextPageToken'] = page_token
 
         try:
             response = self.classroom.courses().studentSubmissions().list(
@@ -730,10 +720,6 @@ class Teacher(GccBase):
                 courseWorkId=course_work_id,
                 **query_params
             ).execute()
-            if page_token:
-                gcc_validators.are_params_string(page_token)
-                response.pageToken = page_token
-            response.execute()
             student_submissions = response.get("studentSubmissions", [])
             next_page_token = response.get("nextPageToken", None)
 
@@ -790,9 +776,9 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         if not students_submissions_json:
-            raise gcc_exceptions.StudentsSubmissionsError()
+            raise gcc_exceptions.StudentsSubmissionsJsonEmpty()
 
-        with open('templates/detailed_students_submissions.json', 'r') as fh:
+        with open('templates/detailed_students_submissions.json', 'r', encoding='utf-8') as fh:
             body = json.load(fh)
 
         update_mask = ','.join(body.keys())
@@ -808,8 +794,9 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def quick_patch_student_submissions(self, course_id: str, course_work_id: str, submission_id: str, sub_states: list[str] = None,
-                                        assigned_grade: int = None, short_answer: str = None, alternate_link: str = None,
+    def quick_patch_student_submissions(self, course_id: str, course_work_id: str, submission_id: str,
+                                        sub_states: list[str] = None, assigned_grade: int = None,
+                                        short_answer: str = None, alternate_link: str = None,
                                         assignment_submission: dict = None) -> dict | False:
         """
         this func defines the quick_patch_student_submissions, updates one or more fields of a student submission.
@@ -897,6 +884,221 @@ class Teacher(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
+
+    def detailed_create_course_work_materials(self, detailed_course_work_material_json: bool = False):
+        """
+
+        :param detailed_course_work_material_json:
+        :return:
+        """
+        if not detailed_course_work_material_json:
+            raise gcc_exceptions.CourseWorkMaterialJsonEmpty()
+        try:
+            with open('templates/detailed_course_work_material.json', 'r', encoding='utf-8') as fh:
+                body = json.load(fh)
+
+            response = self.classroom.courses().courseWorkMaterials().create(**body).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def quick_create_course_work_materials(self, course_id: str, title: str, description: str, materials: list):
+        """
+
+        :param course_id:
+        :param title:
+        :param description:
+        :param materials:
+        :return:
+        """
+        body: dict = {
+            "title": title,
+            "description": description,
+            "materials": materials
+        }
+        try:
+            response = self.classroom.courses().courseWorkMaterials().create(
+                courseId=course_id,
+                body=body
+            ).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def delete_course_work_materials(self, course_id: str, c_w_m_id: str):
+        """
+
+        :param course_id:
+        :param c_w_m_id:
+        :return:
+        """
+        try:
+            response = self.classroom.courses().courseWorkMaterials().delete(
+                courseId=course_id,
+                id=c_w_m_id
+            ).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+
+    def get_course_work_materials(self, course_id: str, c_w_m_id: str) -> dict | False:
+        """
+
+        :param course_id:
+        :param c_w_m_id:
+        :return:
+        """
+        try:
+            response = self.classroom.courses().courseWorkMatirials().get(
+                courseId=course_id,
+                id=c_w_m_id
+            ).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def list_course_work_materials(self, course_id: str, c_w_m_state: list[str] = None, page_size: int = 10,
+                                   page_token: str = None, order_by: str = None, material_link: str = None,
+                                   material_drive_id: str = None):
+        """
+
+        :param course_id:
+        :param c_w_m_state:
+        :param page_size:
+        :param page_token:
+        :param order_by:
+        :param material_link:
+        :param material_drive_id:
+        :return:
+        """
+        query_params: dict = dict()
+
+        if c_w_m_state:
+            for state in c_w_m_state:
+                if state not in ['COURSEWORK_MATERIAL_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+                    raise gcc_exceptions.CourseWorkMaterialStateError()
+            query_params['state'] = c_w_m_state
+
+        if page_size:
+            gcc_validators.are_params_int(page_size)
+            query_params['pageSize'] = page_size
+
+        if page_token:
+            gcc_validators.are_params_string(page_token)
+            query_params['nextPageToken'] = page_token
+
+        if order_by:
+            gcc_validators.are_params_int(order_by)
+            query_params['orderBy'] = order_by
+
+        if material_link:
+            gcc_validators.are_params_string(material_link)
+            query_params['materialLink'] = material_link
+
+        if material_drive_id:
+            gcc_validators.are_params_string(material_drive_id)
+            query_params['materialDriveId'] = material_drive_id
+
+        try:
+            response = self.classroom.courses().courseWorkMatirials().list(
+                courseId=course_id,
+                **query_params
+            ).execute()
+            course_work_material = response.get("courseWorkMaterial", [])
+            next_page_token = response.get("nextPageToken", None)
+
+            self._update_cache()
+            return course_work_material, next_page_token
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def detailed_patch_course_work_material(self, detailed_course_work_material_json: bool = False) -> dict | False:
+        """
+
+        :param detailed_course_work_material_json:
+        :return:
+        """
+        if not detailed_course_work_material_json:
+            raise gcc_exceptions.CourseWorkMaterialJsonEmpty()
+
+        with open('templates/detailed_course_work_material.json', 'r', encoding='utf-8') as fh:
+            body = json.load(fh)
+
+        try:
+            response = self.classroom.courses().courseWorkMatirials().patch(**body).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def quick_patch_course_work_material(self, course_id: str, c_w_m_id: str, title: str = None,  material: list = None,
+                                         description: str = None, scheduled_time: str = None, c_w_m_state: str = None,
+                                         individual_students_options: list[str] = None) -> dict | False:
+        """
+
+        :param c_w_m_state:
+        :param course_id:
+        :param c_w_m_id:
+        :param title:
+        :param material:
+        :param description:
+        :param scheduled_time:
+        :param individual_students_options:
+        :return:
+        """
+        body: dict = dict()
+
+        if c_w_m_state:
+            for state in c_w_m_state:
+                if state not in ['COURSEWORK_MATERIAL_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+                    raise gcc_exceptions.CourseWorkMaterialStateError()
+            body['state'] = c_w_m_state
+
+        if title:
+            gcc_validators.are_params_string(title)
+            body['title'] = title
+
+        if description:
+            gcc_validators.are_params_string(description)
+            body['description'] = description
+
+        if material:
+            if isinstance(material, list):
+                raise TypeError()
+            body['materials'] = material
+
+        if scheduled_time:
+            gcc_validators.are_params_string(scheduled_time)
+            body['scheduledTime'] = scheduled_time
+
+        if individual_students_options:
+            if isinstance(material, list):
+                raise TypeError()
+            body['IndividualStudentsOptions'] = {"studentIds": individual_students_options}
+
+
+        update_mask = ','.join(body.keys())
+
+        try:
+            response: dict = self.classroom.courses().courseWorkMatirials().patch(
+                courseId=course_id,
+                id=c_w_m_id,
+                updateMask=update_mask,
+                body=body
+            ).execute()
+            self._update_cache()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+
 
 
 if __name__ == '__main__':
