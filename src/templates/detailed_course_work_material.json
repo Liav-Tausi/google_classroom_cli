@@ -1,0 +1,18 @@
+{
+  "courseId": "",
+  "id": "",
+  "title": "",
+  "description": "",
+  "materials": [
+    "{object (Material)}"
+  ],
+  "state": "",
+  "alternateLink": "",
+  "creationTime": "",
+  "updateTime": "",
+  "scheduledTime": "",
+  "assigneeMode": "",
+  "individualStudentsOptions": "{object (IndividualStudentsOptions)}",
+  "creatorUserId": "",
+  "topicId": ""
+}
