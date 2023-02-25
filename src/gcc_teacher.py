@@ -885,11 +885,15 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_create_course_work_materials(self, detailed_course_work_material_json: bool = False):
+    def detailed_create_course_work_materials(self, detailed_course_work_material_json: bool = False) -> dict | False:
         """
+        this func defines the detailed_create_course_work_materials, creates a course work material.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/create
+        for more info
 
-        :param detailed_course_work_material_json:
-        :return:
+        :param detailed_course_work_material_json: flag for indication if json is full True if not False 'bool'
+        :return: response dict or False
+
         """
         if not detailed_course_work_material_json:
             raise gcc_exceptions.CourseWorkMaterialJsonEmpty()
@@ -903,15 +907,31 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def quick_create_course_work_materials(self, course_id: str, title: str, description: str, materials: list):
+    def quick_create_course_work_materials(self, course_id: str, title: str, description: str,
+                                           materials: list) -> dict | False:
         """
+        this func defines the quick_create_course_work_materials, creates a course work material.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/create
+        for more info
 
-        :param course_id:
-        :param title:
-        :param description:
-        :param materials:
-        :return:
+        :param course_id: either identifier of the course or assigned alias. 'string'
+
+        :param title: title of this course work material. The title must be a valid UTF-8 string
+                      containing between 1 and 3000 characters.
+
+        :param description: optional description of this course work material.
+                            The text must be a valid UTF-8 string containing no more than 30,000 characters.
+
+        :param materials: additional materials.
+                         a course work material must have no more than 20 material items.
+                         see https://developers.google.com/classroom/reference/rest/v1/Material
+
+        :return: response dict or False
         """
+        gcc_validators.are_params_string(course_id, title, description)
+        if not isinstance(materials, list):
+            raise TypeError
+
         body: dict = {
             "title": title,
             "description": description,
@@ -927,19 +947,23 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def delete_course_work_materials(self, course_id: str, c_w_m_id: str):
+    def delete_course_work_materials(self, course_id: str, c_w_m_id: str) -> bool:
         """
+        this func defines the delete_course_work_materials, deletes a course work material.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/delete
+        for more info
 
-        :param course_id:
-        :param c_w_m_id:
-        :return:
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param c_w_m_id: identifier of the course work material to delete. 'string'
+        :return: bool
         """
+        gcc_validators.are_params_string(course_id, c_w_m_id)
         try:
-            response = self.classroom.courses().courseWorkMaterials().delete(
+            self.classroom.courses().courseWorkMaterials().delete(
                 courseId=course_id,
                 id=c_w_m_id
             ).execute()
-            return response
+            return True
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -947,11 +971,15 @@ class Teacher(GccBase):
 
     def get_course_work_materials(self, course_id: str, c_w_m_id: str) -> dict | False:
         """
+        this func defines the get_course_work_materials, returns a course work material.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/get
+        for more info
 
-        :param course_id:
-        :param c_w_m_id:
-        :return:
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param c_w_m_id: identifier of the course work material to get. 'string'
+        :return: response dict or False
         """
+        gcc_validators.are_params_string(course_id, c_w_m_id)
         try:
             response = self.classroom.courses().courseWorkMatirials().get(
                 courseId=course_id,
@@ -964,17 +992,33 @@ class Teacher(GccBase):
 
     def list_course_work_materials(self, course_id: str, c_w_m_state: list[str] = None, page_size: int = 10,
                                    page_token: str = None, order_by: str = None, material_link: str = None,
-                                   material_drive_id: str = None):
+                                   material_drive_id: str = None) -> dict | False:
         """
+        this func defines the list_course_work_materials, returns a list of course work material that the
+        requester is permitted to view.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/get
+        for more info
 
-        :param course_id:
-        :param c_w_m_state:
-        :param page_size:
-        :param page_token:
-        :param order_by:
-        :param material_link:
-        :param material_drive_id:
-        :return:
+        :param course_id: either identifier of the course or assigned alias. 'string'
+
+        :param c_w_m_state: status of this course work material. If unspecified, the default state is DRAFT.
+                            see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials#CourseWorkMaterialState
+
+        :param page_size: maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
+
+        :param page_token: nextPageToken value returned from a previous list call, indicating that the subsequent page of results should be returned.
+
+        :param order_by: optional sort ordering for results. a comma-separated list of fields with an optional sort direction keyword.
+                         supported field is updateTime. Supported direction keywords are asc and desc.
+                         if not specified, updateTime desc is the default behavior. Examples: updateTime asc, updateTime
+
+        :param material_link: optional filtering for course work material with at least one link material whose URL partially matches the provided string.
+
+        :param material_drive_id: optional filtering for course work material with at least one Drive material whose ID matches the provided string.
+                                  if materialLink is also specified, course work material must have materials matching both filters.
+
+        :return: response dict or False
+
         """
         query_params: dict = dict()
 
@@ -1020,9 +1064,13 @@ class Teacher(GccBase):
 
     def detailed_patch_course_work_material(self, detailed_course_work_material_json: bool = False) -> dict | False:
         """
+        this func defines the detailed_patch_course_work_material, updates one or more fields of a course work material.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/patch
+        for more info
 
-        :param detailed_course_work_material_json:
-        :return:
+        :param detailed_course_work_material_json: flag for indication if json is full True if not False 'bool'
+        :return: bool
+
         """
         if not detailed_course_work_material_json:
             raise gcc_exceptions.CourseWorkMaterialJsonEmpty()
@@ -1041,16 +1089,38 @@ class Teacher(GccBase):
                                          description: str = None, scheduled_time: str = None, c_w_m_state: str = None,
                                          individual_students_options: list[str] = None) -> dict | False:
         """
+        this func defines the quick_patch_course_work_material, updates one or more fields of a course work material.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/patch
+        for more info
 
-        :param c_w_m_state:
-        :param course_id:
-        :param c_w_m_id:
-        :param title:
-        :param material:
-        :param description:
-        :param scheduled_time:
-        :param individual_students_options:
-        :return:
+        :param c_w_m_state: status of this course work material. If unspecified, the default state is DRAFT.
+                            see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials#CourseWorkMaterialState
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param c_w_m_id: identifier of the course work material to patch. 'string'
+
+        :param title: title of this course work material. The title must be a valid UTF-8 string
+                      containing between 1 and 3000 characters.
+
+        :param description: optional description of this course work material.
+                            The text must be a valid UTF-8 string containing no more than 30,000 characters.
+
+        :param material: additional materials.
+                         a course work material must have no more than 20 material items.
+                         see https://developers.google.com/classroom/reference/rest/v1/Material
+
+        :param scheduled_time: optional timestamp when this course work material is scheduled to be published.
+                               a timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits.
+                               examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z".
+                               see https://protobuf.dev/reference/protobuf/google.protobuf/#google.protobuf.Timestamp
+
+        :param individual_students_options: Identifiers of students with access to the course work material.
+                                            This field is set only if assigneeMode is INDIVIDUAL_STUDENTS.
+                                            If the assigneeMode is INDIVIDUAL_STUDENTS,
+                                            then only students specified in this field can see the course work material.
+                                            see https://developers.google.com/classroom/reference/rest/v1/IndividualStudentsOptions
+
+        :return: response dict or False
         """
         body: dict = dict()
 
