@@ -20,12 +20,16 @@ class Student(GccBase):
 
     def reclaim_submission(self, course_id: str, course_work_id: str, submission_id: str) -> bool:
         """
+        this func defines the reclaim_submission, reclaims a student submission on behalf of the student that owns it.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/reclaim
+        for more info
 
-        :param course_id:
-        :param course_work_id:
-        :param submission_id:
-        :return:
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: identifier of the course work. 'string'
+        :param submission_id: identifier of the student submission. 'string'
+        :return: bool
         """
+        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
         try:
             self.classroom.courses().courseWork().studentSubmissions().reclaim(
                 courseId=course_id,
@@ -40,12 +44,16 @@ class Student(GccBase):
 
     def tern_in_submission(self, course_id: str, course_work_id: str, submission_id: str) -> bool:
         """
+        this func defines the tern_in_submission, turns in a student submission.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/turnIn
+        for more info
 
-        :param course_id:
-        :param course_work_id:
-        :param submission_id:
-        :return:
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param course_work_id: identifier of the course work. 'string'
+        :param submission_id: identifier of the student submission. 'string'
+        :return: bool
         """
+        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
         try:
             self.classroom.courses().courseWork().studentSubmissions().ternIn(
                 courseId=course_id,
