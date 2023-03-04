@@ -1,0 +1,14 @@
+{
+  "id": "",
+  "name": {
+  "givenName": "",
+  "familyName": "",
+  "fullName": ""
+  },
+  "emailAddress": "",
+  "photoUrl": "",
+  "permissions": [
+    {"permission": "enum (Permission)"}
+  ],
+  "verifiedTeacher": false
+}
