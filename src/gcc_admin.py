@@ -505,6 +505,7 @@ class Admin(GccBase):
 
         if page_size > 100:
             raise ValueError("Page size cannot be more than 100.")
+
         try:
             request = self.classroom.courses().teachers().list(courseId=course_id,
                                                                pageSize=page_size)
@@ -523,9 +524,3 @@ class Admin(GccBase):
 if __name__ == '__main__':
     gcc = Admin(email='liavt242@gmail.com')
     liav = gcc.quick_create_course(name='daniel', section='liav', description='liav', room='fee')
-    # # gcc.add_teacher(course_id=liav[0])
-    # # gcc.delete_teacher(course_id=542178731078, teacher_email='liavt242@gmail.com')
-    # gcc.delete_course(course_id=588714514132)
-    # print(gcc.get_teacher(course_id=588714514132, teacher_email='liavt242@gmail.com'))
-    # print(gcc.list_teachers(course_id=588714514132))
-    # print(gcc.list_courses(teacher_id='liavt242@gmail.com'))
