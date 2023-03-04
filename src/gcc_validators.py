@@ -1,4 +1,6 @@
+import json
 import re
+import gcc_exceptions
 
 
 # email validator
@@ -31,3 +33,10 @@ def are_params_int(*args, **kwargs):
     if not all(isinstance(param, int) for param in args):
         raise TypeError()
 
+
+def are_params_in_cache(*args, **kwargs):
+    with open(r'C:\Users\liavt\PycharmProjects\google_classroom_cli\src\data_endpoint\gcc_cache.json', 'r') as fh:
+        cache = json.load(fh)
+    for param in args:
+        if param not in cache:
+            raise gcc_exceptions.NotInCache(param)
