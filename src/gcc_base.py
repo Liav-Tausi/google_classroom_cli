@@ -25,7 +25,7 @@ import logging
 from googleapiclient.errors import HttpError
 
 
-class GccBase(ABC):
+class GccBase:
     # ___Main_EndPoints___ #
     __SERVICE_ENDPOINT: str = r'https://classroom.googleapis.com'
 
@@ -104,8 +104,8 @@ class GccBase(ABC):
                 raise gcc_exceptions.ScopeError()
 
         self.__creds = None
-        if os.path.exists(f'data/{self.__role}_token.json'):
-            self.__creds = Credentials.from_authorized_user_file(f'data/{self.__role}_token.json',
+        if os.path.exists(f'data_endpoint/{self.__role}_token.json'):
+            self.__creds = Credentials.from_authorized_user_file(f'data_endpoint/{self.__role}_token.json',
                                                                  scopes=list(scopes))
 
         if not self.creds or not self.creds.valid:
@@ -116,7 +116,7 @@ class GccBase(ABC):
                 flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file=credentials_account_file,
                                                                  scopes=list(scopes))
                 self.__creds = flow.run_local_server(port=0)
-            with open(f'data/{self.__role}_token.json', 'w', encoding='utf-8') as token:
+            with open(f'data_endpoint/{self.__role}_token.json', 'w', encoding='utf-8') as token:
                 token.write(self.creds.to_json())
 
         # ___limitations___ #
@@ -129,12 +129,12 @@ class GccBase(ABC):
         self.__classroom = build('classroom', 'v1', credentials=self.creds)
 
         try:
-            if not os.path.exists('data/gcc_cache.json'):
-                with open('data/gcc_cache.json', 'a', encoding='utf-8') as fh:
+            if not os.path.exists('data_endpoint/gcc_cache.json'):
+                with open('data_endpoint/gcc_cache.json', 'a', encoding='utf-8') as fh:
                     data: dict = dict()
                     json.dump(data, fh)
             else:
-                with open('data/gcc_cache.json', 'r', encoding='utf-8') as fh1:
+                with open('data_endpoint/gcc_cache.json', 'r', encoding='utf-8') as fh1:
                     data = json.load(fh1)
                     if isinstance(data, dict):
                         self.__cache = data
@@ -204,7 +204,7 @@ class GccBase(ABC):
             try:
                 return func(*args, **kwargs)
             finally:
-                with open('data/gcc_cache.json', 'w', encoding='utf-8') as fh:
+                with open('data_endpoint/gcc_cache.json', 'w', encoding='utf-8') as fh:
                     json.dump(args[0].cache, fh)
 
         return wrapper
@@ -212,7 +212,7 @@ class GccBase(ABC):
     @save_cache
     def _update_cache(self):
 
-        with open('data/gcc_cache.json', 'r', encoding='utf-8') as fh:
+        with open('data_endpoint/gcc_cache.json', 'r', encoding='utf-8') as fh:
             fh.read()
             results = self.classroom.courses().list(pageSize=100).execute()
             courses = results.get('courses', [])
