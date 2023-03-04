@@ -29,6 +29,7 @@ class Student(GccBase):
         :param submission_id: identifier of the student submission. 'string'
         :return: bool
         """
+        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
         gcc_validators.are_params_string(course_id, course_work_id, submission_id)
         try:
             self.classroom.courses().courseWork().studentSubmissions().reclaim(
@@ -53,6 +54,7 @@ class Student(GccBase):
         :param submission_id: identifier of the student submission. 'string'
         :return: bool
         """
+        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
         gcc_validators.are_params_string(course_id, course_work_id, submission_id)
         try:
             self.classroom.courses().courseWork().studentSubmissions().ternIn(
