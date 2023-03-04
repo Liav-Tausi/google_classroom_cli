@@ -48,8 +48,8 @@ class TeacherNotInCourse(GccErrors):
 
 
 class NotInCache(GccErrors):
-    def __init__(self):
-        super().__init__('Not in cache.')
+    def __init__(self, param):
+        super().__init__(f'{param} Not in cache.')
 
 
 class ScopeError(GccErrors):
@@ -111,6 +111,11 @@ class StudentsSubmissionsJsonEmpty(GccErrors):
 class CourseWorkMaterialJsonEmpty(GccErrors):
     def __init__(self):
         super().__init__('StudentsSubmissions json is not full.')
+
+
+class DetailedStudentJsonEmpty(GccErrors):
+    def __init__(self):
+        super().__init__('DetailedStudent json is not full.')
 
 
 class CourseWorkMaterialStateError(GccErrors):
