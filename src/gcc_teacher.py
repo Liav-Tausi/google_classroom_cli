@@ -42,9 +42,8 @@ class Teacher(GccBase):
             return False
 
     def quick_create_announcement(self, course_id: str, announcement_text: str, materials: dict, state: dict,
-                                  scheduled_time: str, update_time: str = None,
-                                  assignee_mode: dict = None,
-                                  students_options: list = None) -> dict | False:
+                                  scheduled_time: str, update_time: str = None, assignee_mode: dict = None,
+                                  students_options: list = None) -> dict | bool:
         """
         this func defines the create_announcement method, create an announcement with the following params
 
@@ -69,6 +68,7 @@ class Teacher(GccBase):
         :return: True
         """
         # validation
+        gcc_validators.are_params_in_cache(course_id)
         gcc_validators.are_params_string(announcement_text, course_id, assignee_mode, update_time, scheduled_time)
 
         if state not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
@@ -113,6 +113,7 @@ class Teacher(GccBase):
         :return: True
         """
         # validation
+        gcc_validators.are_params_in_cache(course_id, announcement_id)
         gcc_validators.are_params_string(course_id, announcement_id)
 
         try:
@@ -139,6 +140,7 @@ class Teacher(GccBase):
         :return: response dict | False
         """
         # validation
+        gcc_validators.are_params_in_cache(course_id, announcement_id)
         gcc_validators.are_params_string(course_id, announcement_id)
 
         try:
@@ -214,6 +216,7 @@ class Teacher(GccBase):
         :return: response dict | False
         """
         # validation
+        gcc_validators.are_params_in_cache(course_id, announcement_id)
         gcc_validators.are_params_string(course_id, announcement_id, assignee_mode)
 
         if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
@@ -276,6 +279,7 @@ class Teacher(GccBase):
         :return: response dict | False
         """
         # validation
+        gcc_validators.are_params_in_cache(course_id)
         gcc_validators.are_params_string(course_id, announcement_id)
 
         body: dict = dict()
@@ -352,6 +356,8 @@ class Teacher(GccBase):
         :return: response dict or False
 
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id)
         gcc_validators.are_params_string(course_id, title, description, work_type, state)
 
         if state not in ['COURSE_WORK_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
@@ -392,6 +398,8 @@ class Teacher(GccBase):
         :param course_work_id: identifier of the course work. 'string'
         :return: True or False 'bool'
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, course_work_id)
         gcc_validators.are_params_string(course_id, course_work_id)
         try:
             self.classroom.courses().courseWork().delete(
@@ -414,6 +422,8 @@ class Teacher(GccBase):
         :param course_work_id: identifier of the course work. 'string'
         :return: True or False 'bool'
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, course_work_id)
         gcc_validators.are_params_string(course_id, course_work_id)
         try:
             self.classroom.courses().courseWork().get(
@@ -444,6 +454,8 @@ class Teacher(GccBase):
         :param page_token: Token identifying the next page of results to return. If empty, no further results are available 'string'
         :return: Tuple with a list of course work and nextPageToken value
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id)
         gcc_validators.are_params_string(course_id)
         gcc_validators.are_params_int(page_size)
 
@@ -495,6 +507,8 @@ class Teacher(GccBase):
         :param remove_student_ids: Set which students can view or cannot view the courseWork.
         :return: response dict | False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, course_work_id)
         gcc_validators.are_params_string(course_id, course_work_id, assignee_mode)
 
         if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
@@ -577,6 +591,8 @@ class Teacher(GccBase):
                          see https://developers.google.com/classroom/reference/rest/v1/Material
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, course_work_id)
 
         body: dict = dict()
 
@@ -640,7 +656,10 @@ class Teacher(GccBase):
         :param submission_id: identifier of the student submission. 'string'
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
         gcc_validators.are_params_string(course_id, course_work_id, submission_id)
+
         try:
             response = self.classroom.courses().courseWork().studentSubmissions().get(
                 courseId=course_id,
@@ -684,6 +703,8 @@ class Teacher(GccBase):
         :param course_work_id: identifier of the course work. 'string'
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, course_work_id)
         gcc_validators.are_params_string(course_id, course_work_id)
 
         query_params: dict = dict()
@@ -745,7 +766,10 @@ class Teacher(GccBase):
         :param submission_id: identifier of the student submission. 'string'
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
         gcc_validators.are_params_string(course_id, course_work_id, submission_id)
+
         if not isinstance(materials, dict):
             raise TypeError()
 
@@ -761,6 +785,7 @@ class Teacher(GccBase):
                 id=submission_id,
                 body=body
             ).execute()
+            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -822,6 +847,9 @@ class Teacher(GccBase):
                                       see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions#AssignmentSubmission
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
+
         body: dict = dict()
 
         if sub_states:
@@ -874,12 +902,16 @@ class Teacher(GccBase):
         :param submission_id: identifier of the student submission. 'string'
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, submission_id, course_work_id)
+        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
         try:
             response = self.classroom.courses().courseWork().studentSubmissions().return_(
                 courseId=course_id,
                 courseWorkId=course_work_id,
                 id=submission_id
             ).execute()
+            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -902,6 +934,7 @@ class Teacher(GccBase):
                 body = json.load(fh)
 
             response = self.classroom.courses().courseWorkMaterials().create(**body).execute()
+            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -928,7 +961,10 @@ class Teacher(GccBase):
 
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id)
         gcc_validators.are_params_string(course_id, title, description)
+
         if not isinstance(materials, list):
             raise TypeError
 
@@ -942,6 +978,7 @@ class Teacher(GccBase):
                 courseId=course_id,
                 body=body
             ).execute()
+            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -957,12 +994,16 @@ class Teacher(GccBase):
         :param c_w_m_id: identifier of the course work material to delete. 'string'
         :return: bool
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id)
         gcc_validators.are_params_string(course_id, c_w_m_id)
+
         try:
             self.classroom.courses().courseWorkMaterials().delete(
                 courseId=course_id,
                 id=c_w_m_id
             ).execute()
+            self._update_cache()
             return True
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -979,12 +1020,16 @@ class Teacher(GccBase):
         :param c_w_m_id: identifier of the course work material to get. 'string'
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id)
         gcc_validators.are_params_string(course_id, c_w_m_id)
+
         try:
             response = self.classroom.courses().courseWorkMatirials().get(
                 courseId=course_id,
                 id=c_w_m_id
             ).execute()
+            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -1020,6 +1065,9 @@ class Teacher(GccBase):
         :return: response dict or False
 
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id)
+
         query_params: dict = dict()
 
         if c_w_m_state:
@@ -1077,9 +1125,9 @@ class Teacher(GccBase):
 
         with open('templates/detailed_course_work_material.json', 'r', encoding='utf-8') as fh:
             body = json.load(fh)
-
         try:
             response = self.classroom.courses().courseWorkMatirials().patch(**body).execute()
+            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -1122,6 +1170,9 @@ class Teacher(GccBase):
 
         :return: response dict or False
         """
+        # validation
+        gcc_validators.are_params_in_cache(course_id)
+
         body: dict = dict()
 
         if c_w_m_state:
@@ -1162,6 +1213,59 @@ class Teacher(GccBase):
                 updateMask=update_mask,
                 body=body
             ).execute()
+            self._update_cache()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def quick_add_student(self, course_id: str, enrollment_code: str, user_id: str) -> dict | bool:
+        """
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param enrollment_code: Enrollment code of the course to create the student in.
+                                This code is required if userId corresponds to the requesting user;
+                                it may be omitted if the requesting user has administrative permissions to create students for any user.
+
+        :param user_id: optional argument to restrict returned student work to those owned by the student with the specified identifier.
+                        the identifier can be one of the following: {
+                            the numeric identifier for the user,
+                            the email address of the user ,
+                            the string literal "me" indicating the requesting user
+                        }
+        :return: request dict | bool
+        """
+        # validation
+        gcc_validators.are_params_in_cache(course_id, enrollment_code)
+        gcc_validators.are_params_string(course_id, enrollment_code, user_id)
+
+        body: dict = {
+            "userId": user_id,
+        }
+        try:
+            response = self.classroom.courses().students().create(
+                courseId=course_id,
+                enrollmentCode=enrollment_code,
+                body=body
+            ).execute()
+            self._update_cache()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def detailed_add_student(self, detailed_student_json: bool = False) -> dict | bool:
+        """
+        :param detailed_student_json: detailed course_json needs to be full
+        :return: request dict | bool
+        """
+        if not detailed_student_json:
+            raise gcc_exceptions.DetailedStudentJsonEmpty()
+
+        with open(r'templates\derailed_student.json', 'r') as fh:
+            body = json.load(fh)
+
+        try:
+            response = self.classroom.courses().students().create(**body).execute()
             self._update_cache()
             return response
         except HttpError as error:
