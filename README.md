@@ -1,10 +1,9 @@
 <div align="left">by liav tausi</div>
 <div align="center">
     <img src="https://www.linkpicture.com/q/class-room-cli.png" width="130">
-    <h2 align="center">google classroom cli </h2>
+    <h2 align="center">Google Classroom CLI (Under Construction) </h2>
 </div>
 
-# Google Classroom CLI (Under Construction)
 Google Classroom CLI is a command-line interface tool that allows users to interact with Google Classroom without leaving the terminal. This project is currently under construction and is still a work in progress.
 
 ## Features
