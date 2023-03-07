@@ -148,7 +148,6 @@ class Teacher(GccBase):
                 courseId=course_id,
                 id=announcement_id
             )
-            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -182,6 +181,8 @@ class Teacher(GccBase):
 
         if page_size:
             gcc_validators.are_params_int(page_size)
+            if page_size >= 100:
+                raise ValueError("Page size cannot be more than 100.")
             query_params['pageSize'] = page_size
 
         if page_token:
@@ -192,8 +193,8 @@ class Teacher(GccBase):
             response = self.classroom.courses().announcements().list(**query_params)
             announcements = response.get("courses", [])
             next_page_token = response.get("nextPageToken", None)
-            self._update_cache()
-            return announcements, next_page_token
+
+            return {"announcements": announcements, "next_page_token": next_page_token}
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -299,7 +300,7 @@ class Teacher(GccBase):
                 raise gcc_exceptions.TimeStampError()
             body['scheduledTime'] = scheduled_time
 
-        update_mask = ','.join(body.keys())
+        update_mask: str = ','.join(body.keys())
 
         try:
             response: dict = self.classroom.courses().announcements().patch(
@@ -412,7 +413,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def get_course_work(self, course_id: str, course_work_id: str) -> bool:
+    def get_course_work(self, course_id: str, course_work_id: str) -> dict | bool:
         """
         this func defines the get_course_work method, gets course work..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/get
@@ -425,13 +426,13 @@ class Teacher(GccBase):
         # validation
         gcc_validators.are_params_in_cache(course_id, course_work_id)
         gcc_validators.are_params_string(course_id, course_work_id)
+
         try:
-            self.classroom.courses().courseWork().get(
+            response = self.classroom.courses().courseWork().get(
                 courseId=course_id,
                 id=course_work_id
             ).execute()
-            self._update_cache()
-            return True
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -440,7 +441,7 @@ class Teacher(GccBase):
                          order_by: str = 'updateTime desc', page_size: int = 10,
                          page_token: str = None) -> tuple[list[dict], str] | False:
         """
-        this func defines the get_course_work method, Returns a list of course work that the responseer is permitted to view.
+        this func defines the get_course_work method, Returns a list of course work that the requester is permitted to view.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/list
         for more info
 
@@ -457,7 +458,6 @@ class Teacher(GccBase):
         # validation
         gcc_validators.are_params_in_cache(course_id)
         gcc_validators.are_params_string(course_id)
-        gcc_validators.are_params_int(page_size)
 
         query_params = {'courseId': course_id}
 
@@ -473,6 +473,8 @@ class Teacher(GccBase):
 
         if page_size:
             gcc_validators.are_params_int(page_size)
+            if page_size >= 100:
+                raise ValueError("Page size cannot be more than 100.")
             query_params['pageSize'] = page_size
 
         if page_token:
@@ -484,8 +486,7 @@ class Teacher(GccBase):
             course_work_list = response.get("courseWork", [])
             next_page_token = response.get("nextPageToken", None)
 
-            self._update_cache()
-            return course_work_list, next_page_token
+            return {"course_work_list": course_work_list, "next_page_token": next_page_token}
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -630,7 +631,7 @@ class Teacher(GccBase):
                 raise TypeError()
             body['materials'] = materials
 
-        update_mask = ','.join(body.keys())
+        update_mask: str = ','.join(body.keys())
 
         try:
             response: dict = self.classroom.courses().courseWork().patch(
@@ -666,7 +667,6 @@ class Teacher(GccBase):
                 courseWorkId=course_work_id,
                 id=submission_id
             ).execute()
-            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -677,14 +677,14 @@ class Teacher(GccBase):
                                  late: str = 'LATE_VALUES_UNSPECIFIED', page_token: str = None) -> dict | False:
         """
         this func defines the list_student_submissions, Returns a list of student submissions that the requester is permitted to view,
-        factoring in the OAuth scopes of the request. - may be specified as the courseWorkId to include student submissions
+        factoring in the OAuth scopes of the response. - may be specified as the courseWorkId to include student submissions
         for multiple course work items.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/list
         for more info
 
         :param page_token: nextPageToken value returned from a previous list call,
                           indicating that the subsequent page of results should be returned.
-                          The list request must be otherwise identical to the one that resulted in this token.
+                          The list response must be otherwise identical to the one that resulted in this token.
 
         :param page_size: maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum. 'int'
 
@@ -729,6 +729,8 @@ class Teacher(GccBase):
 
         if page_size:
             gcc_validators.are_params_int(page_size)
+            if page_size >= 100:
+                raise ValueError("Page size cannot be more than 100.")
             query_params['pageSize'] = page_size
 
         if page_token:
@@ -744,8 +746,7 @@ class Teacher(GccBase):
             student_submissions = response.get("studentSubmissions", [])
             next_page_token = response.get("nextPageToken", None)
 
-            self._update_cache()
-            return student_submissions, next_page_token
+            return {"student_submissions": student_submissions, "next_page_token": next_page_token}
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -875,7 +876,7 @@ class Teacher(GccBase):
         if assignment_submission:
             body['assignmentSubmission'] = {"attachments": [{assignment_submission}]}
 
-        update_mask = ','.join(body.keys())
+        update_mask: str = ','.join(body.keys())
 
         try:
             response: dict = self.classroom.courses().courseWork().studentSubmissions().patch(
@@ -911,7 +912,6 @@ class Teacher(GccBase):
                 courseWorkId=course_work_id,
                 id=submission_id
             ).execute()
-            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -1029,7 +1029,6 @@ class Teacher(GccBase):
                 courseId=course_id,
                 id=c_w_m_id
             ).execute()
-            self._update_cache()
             return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
@@ -1078,6 +1077,8 @@ class Teacher(GccBase):
 
         if page_size:
             gcc_validators.are_params_int(page_size)
+            if page_size >= 100:
+                raise ValueError("Page size cannot be more than 100.")
             query_params['pageSize'] = page_size
 
         if page_token:
@@ -1104,8 +1105,7 @@ class Teacher(GccBase):
             course_work_material = response.get("courseWorkMaterial", [])
             next_page_token = response.get("nextPageToken", None)
 
-            self._update_cache()
-            return course_work_material, next_page_token
+            return {"course_work_material": course_work_material, "next_page_token": next_page_token}
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -1204,7 +1204,7 @@ class Teacher(GccBase):
             body['IndividualStudentsOptions'] = {"studentIds": individual_students_options}
 
 
-        update_mask = ','.join(body.keys())
+        update_mask: str = ','.join(body.keys())
 
         try:
             response: dict = self.classroom.courses().courseWorkMatirials().patch(
@@ -1221,6 +1221,10 @@ class Teacher(GccBase):
 
     def quick_add_student(self, course_id: str, enrollment_code: str, user_id: str) -> dict | bool:
         """
+        this func defines the quick_add_student, adds a user as a student of a course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
+        for more info
+
         :param course_id: either identifier of the course or assigned alias. 'string'
         :param enrollment_code: Enrollment code of the course to create the student in.
                                 This code is required if userId corresponds to the requesting user;
@@ -1232,7 +1236,7 @@ class Teacher(GccBase):
                             the email address of the user ,
                             the string literal "me" indicating the requesting user
                         }
-        :return: request dict | bool
+        :return: response dict | bool
         """
         # validation
         gcc_validators.are_params_in_cache(course_id, enrollment_code)
@@ -1255,8 +1259,12 @@ class Teacher(GccBase):
 
     def detailed_add_student(self, detailed_student_json: bool = False) -> dict | bool:
         """
+        this func defines the detailed_add_student, adds a user as a student of a course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
+        for more info
+
         :param detailed_student_json: detailed course_json needs to be full
-        :return: request dict | bool
+        :return: response dict | bool
         """
         if not detailed_student_json:
             raise gcc_exceptions.DetailedStudentJsonEmpty()
@@ -1272,7 +1280,257 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    def delete_student(self, course_id: str, user_id: str) -> bool:
+        """
+        this func defines the delete_student, deletes a user as a student of a course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.students/delete
+        for more info
 
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param user_id: optional argument to restrict returned student work to those owned by the student with the specified identifier.
+                        the identifier can be one of the following: {
+                            the numeric identifier for the user,
+                            the email address of the user ,
+                            the string literal "me" indicating the requesting user
+                        }
+        :return: bool
+        """
+        gcc_validators.are_params_in_cache(course_id)
+        gcc_validators.are_params_string(course_id, user_id)
+
+        try:
+            self.classroom.courses().students().delete(
+                courseId=course_id,
+                id=user_id
+            ).execute()
+            self._update_cache()
+            return True
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def get_student(self, course_id: str, user_id: str) -> dict | False:
+        """
+        this func defines the get_student, return a user as a student of a course.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.students/get
+        for more info
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param user_id: optional argument to restrict returned student work to those owned by the student with the specified identifier.
+                        the identifier can be one of the following:
+                            the numeric identifier for the user,
+                            the email address of the user ,
+                            the string literal "me" indicating the requesting user
+
+        :return: response dict or False
+        """
+        gcc_validators.are_params_in_cache(course_id)
+        gcc_validators.are_params_string(course_id, user_id)
+
+        try:
+            response = self.classroom.courses().students().get(
+                courseId=course_id,
+                id=user_id
+            ).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def list_students(self, course_id: str, page_size: int = 10, page_token: str = None) -> dict | False:
+        """
+        this func defines the list_students, returns a list of students of this course that the requester is permitted to view.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.students/list
+        for more info
+        
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param page_size: Maximum number of items to return. The default is 30 if unspecified or 0.
+                          The server may return fewer than the specified number of results.
+        :param page_token: nextPageToken value returned from a previous list call,
+                           indicating that the subsequent page of results should be returned.
+                           The list request must be otherwise identical to the one that resulted in this token.
+
+        :return: response dict or false
+        """
+        gcc_validators.are_params_in_cache(course_id)
+
+        query_params: dict = dict()
+
+        if page_size:
+            gcc_validators.are_params_int(page_size)
+            if page_size >= 100:
+                raise ValueError("Page size cannot be more than 100.")
+            query_params["pageSize"] = page_size
+
+        if page_token:
+            gcc_validators.are_params_string(page_token)
+            query_params["pageToken"] = page_token
+
+        try:
+            response = self.classroom.courses().students().list(
+                courseId=course_id,
+                **query_params
+            ).execute()
+
+            students = response.get("students", [])
+            next_page_token = response.get("nextPageToken", None)
+
+            return {"students": students, "nextPageToken": next_page_token}
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+
+    def create_topic(self, course_id: str, topic_name: str) -> dict | bool:
+        """
+        this func defines the create_topic, creates a topic.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.topics/create
+        for more info
+
+        :param topic_name: The name of the topic, generated by the user. Leading and trailing whitespaces, if any,
+                          are trimmed. Also, multiple consecutive whitespaces are collapsed into one inside the name.
+                          The result must be a non-empty string. Topic names are case sensitive, and must be no longer than 100 characters.
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :return: response dict or False
+        """
+        gcc_validators.are_params_in_cache(course_id)
+        gcc_validators.are_params_string(course_id, topic_name)
+
+        body: dict = {
+          "name": topic_name,
+        }
+
+        try:
+            response = self.classroom.courses().topics().create(
+                coutseId=course_id,
+                body=body
+            ).execute()
+            self._update_cache()
+
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def delete_topic(self, course_id: str, topic_id: str) -> bool:
+        """
+        this func defines the delete_topic, deletes a topic.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.topics/delete
+        for more info
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param topic_id: identifier of the topic.
+        :return: bool
+        """
+        gcc_validators.are_params_in_cache(course_id, topic_id)
+        gcc_validators.are_params_string(course_id, topic_id)
+
+        try:
+            self.classroom.courses().topics().delete(
+                courseId=course_id,
+                id=topic_id
+            ).execute()
+            return True
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def get_topic(self, course_id: str, topic_id: str) -> dict | bool:
+        """
+        this func defines the get_topic, returns a topic.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.topics/delete
+        for more info
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param topic_id: identifier of the topic.
+        :return: response dict or False
+        """
+        gcc_validators.are_params_in_cache(course_id, topic_id)
+        gcc_validators.are_params_string(course_id, topic_id)
+
+        try:
+            response = self.classroom.courses().topics().delete(
+                courseId=course_id,
+                id=topic_id
+            ).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def list_topics(self, course_id: str, page_size: int = 10, page_token: str = None) -> dict | bool:
+        """
+        this func defines the list_topics, returns the list of topics that the requester is permitted to view.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.topics/delete
+        for more info
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
+                          The server may return fewer than the specified number of results.
+        :param page_token: nextPageToken value returned from a previous list call, indicating that the subsequent
+                          page of results should be returned. The list request must be otherwise identical to the one that resulted in this token.
+        :return: response dict or False
+
+        """
+        gcc_validators.are_params_string(course_id)
+
+        query_params: dict = dict()
+
+        if page_size:
+            gcc_validators.are_params_int(page_size)
+            if page_size >= 100:
+                raise ValueError("Page size cannot be more than 100.")
+            query_params["pageSize"] = page_size
+
+        if page_token:
+            gcc_validators.are_params_string(page_token)
+            query_params["pageToken"] = page_token
+
+        try:
+            response = self.classroom.courses().topics().list(
+                courseId=course_id,
+                **query_params
+            ).execute()
+
+            topics = response.get("topics", [])
+            next_page_token = response.get("nextPageToken", None)
+            return {"topics": topics, "nextPageToken": next_page_token}
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def patch_topic(self, course_id: str, topic_id: str, topic_name: str) -> dict | bool:
+        """
+        this func defines the patch_topic, updates one or more fields of a topic.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.topics/patch
+        for more info
+
+        :param topic_name: The name of the topic, generated by the user. Leading and trailing whitespaces, if any, are trimmed.
+                           Also, multiple consecutive whitespaces are collapsed into one inside the name.
+                           The result must be a non-empty string. Topic names are case sensitive, and must be no longer than 100 characters.
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param topic_id: identifier of the topic
+        :return: response dict or False
+
+        """
+        gcc_validators.are_params_in_cache(course_id, topic_id)
+        gcc_validators.are_params_string(course_id, topic_id, topic_name)
+
+        try:
+            response = self.classroom.courses().topics().patch(
+                courseId=course_id,
+                id=topic_id,
+                updateMask='name',
+                body={'name': topic_name}
+            ).execute()
+            self._update_cache()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def accept_invitation(self, invitation_id: str):
+        return self._accept_invitation(invitation_id=invitation_id)
 
 
 if __name__ == '__main__':
