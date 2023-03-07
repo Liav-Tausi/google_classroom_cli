@@ -195,8 +195,26 @@ class GccBase:
     def set_limits(self):
         self.__limits = ini_config.get_config(filename='conf/personal_config.ini', section='usage_limits')
 
-    def get_user_id(self):
-        pass
+    def _accept_invitation(self, invitation_id: str) -> bool:
+        """
+        this func defines the accept_invitation method, Accepts an invitation.
+        removing it and adding the invited user to the teachers or students (as appropriate) of the specified course.
+        Only the invited user may accept an invitation.
+        see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/list
+        for more info
+
+        :param invitation_id: Identifier of the invitation to accept.
+        :return: bool
+
+        """
+        gcc_validators.are_params_string(invitation_id)
+
+        try:
+            self.classroom.courses().invitations().accept(id=invitation_id).execute()
+            return True
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
 
     @staticmethod
     def save_cache(func):
