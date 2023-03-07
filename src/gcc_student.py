@@ -66,3 +66,9 @@ class Student(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
+
+    def accept_invitation(self, invitation_id: str):
+        return self._accept_invitation(invitation_id=invitation_id)
+
+
+
