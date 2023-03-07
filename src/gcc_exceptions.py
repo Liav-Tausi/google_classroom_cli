@@ -64,7 +64,8 @@ class AnnouncementStateError(GccErrors):
 
 class SubmissionStateError(GccErrors):
     def __init__(self):
-        super().__init__('SubmissionStateError should be [SUBMISSION_STATE_UNSPECIFIED, NEW, CREATED,TURNED_IN, RETURNED, RECLAIMED_BY_STUDENT')
+        super().__init__(
+            'SubmissionStateError should be [SUBMISSION_STATE_UNSPECIFIED, NEW, CREATED,TURNED_IN, RETURNED, RECLAIMED_BY_STUDENT')
 
 
 class SubmissionLateValueError(GccErrors):
@@ -118,14 +119,17 @@ class DetailedStudentJsonEmpty(GccErrors):
         super().__init__('DetailedStudent json is not full.')
 
 
+class RoleError(GccErrors):
+    def __init__(self):
+        super().__init__('Role should be in [STUDENT, TEACHER, OWNER]')
+
+
 class CourseWorkMaterialStateError(GccErrors):
     def __init__(self):
-        super().__init__('CourseWorkMaterial state should be in [DELETED, DRAFT, PUBLISHED, COURSEWORK_MATERIAL_STATE_UNSPECIFIED].')
+        super().__init__(
+            'CourseWorkMaterial state should be in [DELETED, DRAFT, PUBLISHED, COURSEWORK_MATERIAL_STATE_UNSPECIFIED].')
 
 
 class CourseJsonEmpty(GccErrors):
     def __init__(self):
         super().__init__('Course json is not full.')
-
-
-
