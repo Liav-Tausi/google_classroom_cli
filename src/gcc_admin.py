@@ -500,22 +500,208 @@ class Admin(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, page_token)
-        gcc_validators.are_params_int(page_size)
+        gcc_validators.are_params_string(course_id)
 
-        if page_size > 100:
-            raise ValueError("Page size cannot be more than 100.")
+        query_params: dict = dict()
+
+        if page_size:
+            gcc_validators.are_params_int(page_size)
+            if page_size >= 100:
+                raise ValueError("Page size cannot be more than 100.")
+            query_params['pageSize'] = page_size
+
+        if page_token:
+            gcc_validators.are_params_string(page_token)
+            query_params['nextPageToken'] = page_token
 
         try:
-            request = self.classroom.courses().teachers().list(courseId=course_id,
-                                                               pageSize=page_size)
+            response = self.classroom.courses().teachers().list(courseId=course_id,
+                                                                pageSize=page_size)
             if page_token:
                 gcc_validators.are_params_string(page_token)
-                request.pageToken = page_token
-            teacher = request.execute()
+                response.pageToken = page_token
+            response.execute()
+            teacher = response.get("teachers", [])
             next_page_token = teacher.get("nextPageToken", None)
 
             return teacher, next_page_token
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def accept_invitation(self, invitation_id: str):
+        return self._accept_invitation(invitation_id=invitation_id)
+
+    def create_invitation(self, course_id: str, user_id: str, role: str) -> dict | bool:
+        """
+        this func defines the create_invitation, creates an invitation. only one invitation for a user and course may exist at a time.
+        delete and re-create an invitation to make changes
+        see https://developers.google.com/classroom/reference/rest/v1/invitations/create
+        for more info
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param user_id: optional argument to restrict returned student work to those owned by the student with the specified identifier.
+                        the identifier can be one of the following:
+                            the numeric identifier for the user,
+                            the email address of the user ,
+                            the string literal "me" indicating the requesting user
+
+        :param role: role to invite the user to have. Must not be COURSE_ROLE_UNSPECIFIED.
+                     COURSE_ROLE_UNSPECIFIED, STUDENT, TEACHER, OWNER
+        :return: response dict or False
+
+        """
+        gcc_validators.are_params_in_cache(course_id, user_id)
+        gcc_validators.are_params_string(user_id, course_id)
+
+        if role not in ["STUDENT", "TEACHER", "OWNER"]:
+            raise gcc_exceptions.RoleError()
+
+        body: dict = {
+            "userId": user_id,
+            "courseId": course_id,
+            "role": role
+        }
+        try:
+            response = self.classroom.courses().invitations().create(body=body).execute()
+            return response
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def delete_invitation(self, invitation_id: str) -> bool:
+        """
+        this func defines the delete_invitation method, deletes an invitation.
+        see https://developers.google.com/classroom/reference/rest/v1/invitations/delete
+        for more info
+
+        :param invitation_id: identifier of the invitation to delete.
+        :return: bool
+
+        """
+        gcc_validators.are_params_string(invitation_id)
+
+        try:
+            self.classroom.courses().invitations().delete(id=invitation_id).execute()
+            return True
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def get_invitation(self, invitation_id: str) -> dict | False:
+        """
+        this func defines the get_invitation method, gets an invitation.
+        see https://developers.google.com/classroom/reference/rest/v1/invitations/get
+        for more info
+
+        :param invitation_id: identifier of the invitation to delete.
+        :return: bool
+
+        """
+        gcc_validators.are_params_string(invitation_id)
+
+        try:
+            self.classroom.courses().invitations().get(id=invitation_id).execute()
+            return True
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    def list_invitation(self, course_id: str, user_id: str, page_size: int = 10,
+                        page_token: str = None) -> dict | False:
+        """
+        this func defines the get_invitation method, gets an invitation.
+        see https://developers.google.com/classroom/reference/rest/v1/invitations/get
+        for more info
+
+        :param course_id: either identifier of the course or assigned alias. 'string'
+        :param user_id: optional argument to restrict returned student work to those owned by the student with the specified identifier.
+                        the identifier can be one of the following:
+                            the numeric identifier for the user,
+                            the email address of the user ,
+                            the string literal "me" indicating the requesting user
+        :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
+                          The server may return fewer than the specified number of results.
+        :param page_token: nextPageToken value returned from a previous list call, indicating that the subsequent
+                          page of results should be returned. The list request must be otherwise identical to the one that resulted in this token.
+        :return: response dict | False
+        """
+        gcc_validators.are_params_in_cache(course_id, user_id)
+        gcc_validators.are_params_string(course_id, user_id)
+
+        query_params: dict = dict()
+
+        if page_size:
+            gcc_validators.are_params_int(page_size)
+            if page_size >= 100:
+                raise ValueError("Page size cannot be more than 100.")
+            query_params['pageSize'] = page_size
+
+        if page_token:
+            gcc_validators.are_params_string(page_token)
+            query_params['nextPageToken'] = page_token
+
+        try:
+            response = self.classroom.courses().invitations().list(
+                courseId=course_id,
+                id=user_id,
+                **query_params
+            ).execute()
+
+            invitations = response.get("invitations", [])
+            next_page_token = response.get("nextPageToken", None)
+            return {"invitations": invitations, "nextPageToken": next_page_token}
+        except HttpError as error:
+            self.logger.error('An error occurred: %s' % error)
+            return False
+
+    # def create_registration(self, course_id: str, cloud_pubsub_topic: str, feed_url: str) -> dict | bool:
+    #     """
+    #     Creates a Google Classroom registration for a feed URL and a Cloud Pub/Sub topic.
+    #
+    #     :param course_id: either identifier of the course or assigned alias. 'string'
+    #     :param cloud_pubsub_topic: The Cloud Pub/Sub topic to which notifications will be sent.
+    #     :param feed_url: The URL of the feed to monitor for changes.
+    #     :return: A dictionary representing the newly created registration, or False if an error occurs.
+    #     """
+    #     try:
+    #         topic_name = f'projects/{self.project_id}/topics/{cloud_pubsub_topic}'
+    #         cloud_pubsub_topic = {'topicName': topic_name}
+    #
+    #
+    #         body = {
+    #             'feed': {
+    #                 'feedType': 'COURSE_WORK_CHANGES',
+    #                 'courseWorkChangesInfo': {'courseId': course_id}
+    #             },
+    #             'cloudPubsubTopic': cloud_pubsub_topic,
+    #             'feedUrl': feed_url
+    #         }
+    #
+    #         response = self.classroom.registrations().create(body=body).execute()
+    #         return response
+    #     except HttpError as error:
+    #         self.logger.error('An error occurred: %s' % error)
+    #         return False
+
+    def get_user(self, user_id: str) -> dict | False:
+        """
+        this func defines the get_user method, returns a user profile.
+        see https://developers.google.com/classroom/reference/rest/v1/userProfiles/get
+        for more info
+
+        :param user_id: identifier of the profile to return. The identifier can be one of the following:
+                        the numeric identifier for the user
+                        the email address of the user
+                        the string literal "me", indicating the requesting user
+        :return: response dict or False
+        """
+        gcc_validators.are_params_in_cache(user_id)
+        gcc_validators.are_params_string(user_id)
+
+        try:
+            response = self.classroom.userProfiles().get(userId=user_id).execute()
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
