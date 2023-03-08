@@ -7,7 +7,7 @@
 Google Classroom CLI is a command-line interface tool that allows users to interact with Google Classroom without leaving the terminal. This project is currently under construction and is still a work in progress.
 
 ## Features
-- * all google classroom's capabilities and more.
+- all google classroom's capabilities and more.
 
 ## Installation
 - Clone the repository
