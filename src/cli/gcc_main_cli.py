@@ -1,13 +1,13 @@
 import argparse
-from ..gcc_validators import *
+from src.gcc_validators import *
 
 from gcc_student_cli import StudentCli
 from gcc_teacher_cli import TeacherCli
-from gcc_admin_cli import AdminCli
+from src.cli.gcc_admin_cli import AdminCli
 
-from ..gcc_teacher import Teacher
-from ..gcc_student import Student
-from ..gcc_admin import Admin
+from src.gcc_teacher import Teacher
+from src.gcc_student import Student
+from src.gcc_admin import Admin
 
 possible_methods = [
     'd_create',
