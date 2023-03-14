@@ -2,10 +2,10 @@ import datetime
 import json
 import pytz
 
-from gcc_base import GccBase
+from src.gcc_base import GccBase
 from googleapiclient.errors import HttpError
-import gcc_exceptions
-import gcc_validators
+from src import gcc_exceptions
+from src import gcc_validators
 
 __all__ = [
     'Teacher'
@@ -20,12 +20,11 @@ class Teacher(GccBase):
             raise gcc_exceptions.InvalidRole()
         super().__init__(role, ref_cache_month, work_space, email)
 
-    def detailed_create_announcement(self, detailed_json: bool = False) -> dict | False:
+    def detailed_create_announcement(self, detailed_json: bool = False)-> dict or False:
         """
         this func defines the detailed_create_announcement method, creates a detailed announcement
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/create
         for more info
-
 
         :return:
         """
@@ -45,7 +44,7 @@ class Teacher(GccBase):
     @gcc_validators.validate_params(str, str, dict, str, str)
     def quick_create_announcement(self, course_id: str, announcement_text: str, materials: dict, state: str,
                                   scheduled_time: str, update_time: str = None, assignee_mode: dict = None,
-                                  students_options: list = None) -> dict | bool:
+                                  students_options: list = None)-> dict or False:
         """
         this func defines the create_announcement method, create an announcement with the following params
 
@@ -128,7 +127,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def get_announcement(self, course_id: str, announcement_id: str) -> dict | False:
+    def get_announcement(self, course_id: str, announcement_id: str):
         """
         this func defines the get_announcement method, get an announcement with the following params
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/get
@@ -154,7 +153,7 @@ class Teacher(GccBase):
             return False
 
     def list_announcements(self, states: str, page_size: int = 10, order_by: str = None,
-                           page_token: str = None) -> tuple | False:
+                           page_token: str = None):
         """
         this func defines the list_announcement method, get a list with all the announcements with the following params
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list
@@ -202,7 +201,7 @@ class Teacher(GccBase):
     @gcc_validators.validate_params(str, str, str)
     def modify_announcement_assignees(self, course_id: str, announcement_id: str, assignee_mode: str,
                                       add_student_ids: list[str] = None,
-                                      remove_student_ids: list[str] = None) -> dict | False:
+                                      remove_student_ids: list[str] = None) -> dict or False:
         """
         this func defines the modify_assignees method, modifies assignee mode and options of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/modifyAssignees
@@ -243,7 +242,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_announcement(self, detailed_json: bool = False) -> dict | False:
+    def detailed_patch_announcement(self, detailed_json: bool = False) -> dict or False:
         """
         this func defines the detailed_patch_announcement method, modifies detailed options of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/patch
@@ -267,7 +266,7 @@ class Teacher(GccBase):
 
     @gcc_validators.validate_params(str, str)
     def quick_patch_announcement(self, course_id: str, announcement_id: str, state: str = None,
-                                 text: str = None, scheduled_time: str = None) -> dict | False:
+                                 text: str = None, scheduled_time: str = None) -> dict or False:
         """
         this func defines the patch_announcement method, updates one or more fields of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/patch
@@ -315,7 +314,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_course_work_create(self, detailed_json: bool = False) -> dict | False:
+    def detailed_course_work_create(self, detailed_json: bool = False) -> dict or False:
         """
         this func defines the detailed_course_work_create method, creates course work..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/create
@@ -343,7 +342,7 @@ class Teacher(GccBase):
 
     @gcc_validators.validate_params(str, str, str, list, str, str)
     def quick_course_work_create(self, course_id: str, title: str, description: str,
-                                 material: dict, work_type: str, state: str) -> dict | False:
+                                 material: dict, work_type: str, state: str) -> dict or False:
         """
         this func defines the quick_course_work_create method, creates course work..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/create
@@ -412,7 +411,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def get_course_work(self, course_id: str, course_work_id: str) -> dict | bool:
+    def get_course_work(self, course_id: str, course_work_id: str) -> dict or False:
         """
         this func defines the get_course_work method, gets course work..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/get
@@ -438,7 +437,7 @@ class Teacher(GccBase):
     @gcc_validators.validate_params(str)
     def list_course_work(self, course_id: str, states: list[str] = None,
                          order_by: str = 'updateTime desc', page_size: int = 10,
-                         page_token: str = None) -> tuple[list[dict], str] | False:
+                         page_token: str = None) -> tuple[list[dict], str] or False:
         """
         this func defines the get_course_work method, Returns a list of course work that the requester is permitted to view.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/list
@@ -492,7 +491,7 @@ class Teacher(GccBase):
     @gcc_validators.validate_params(str, str, str)
     def modify_course_work_assignees(self, course_id: str, course_work_id: str, assignee_mode: str,
                                      add_student_ids: list[str] = None,
-                                     remove_student_ids: list[str] = None) -> dict | False:
+                                     remove_student_ids: list[str] = None) -> dict or False:
         """
         this func defines the modify_assignees method, Modifies assignee mode and options of a coursework.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/modifyAssignees
@@ -533,7 +532,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_course_work(self, detailed_json: bool = False) -> dict | False:
+    def detailed_patch_course_work(self, detailed_json: bool = False) -> dict or False:
         """
         this func defines the detailed_patch_course_work method, updates one or more fields of a course work.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/patch
@@ -565,7 +564,7 @@ class Teacher(GccBase):
     def quick_patch_course_work(self, course_id: str, course_work_id: str, title: str = None,
                                 description: str = None, due_date: dict = None, due_time: dict = None,
                                 scheduled_time: str = None, states: list[str] = None,
-                                materials: dict = None) -> dict | False:
+                                materials: dict = None) -> dict or False:
         """
         this func defines the quick_patch_course_work, updates one or more fields of a course work.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/patch
@@ -647,7 +646,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str, str)
-    def get_student_submissions(self, course_id: str, course_work_id: str, submission_id: str) -> dict | False:
+    def get_student_submissions(self, course_id: str, course_work_id: str, submission_id: str) -> dict or False:
         """
         this func defines the get_student_submissions, returns a student submission.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/get
@@ -675,7 +674,7 @@ class Teacher(GccBase):
     @gcc_validators.validate_params(str, str)
     def list_student_submissions(self, course_id: str, course_work_id: str, user_id: str = None,
                                  page_size: int = 10, sub_states: list[str] = 'SUBMISSION_STATE_UNSPECIFIED',
-                                 late: str = 'LATE_VALUES_UNSPECIFIED', page_token: str = None) -> dict | False:
+                                 late: str = 'LATE_VALUES_UNSPECIFIED', page_token: str = None) -> dict or False:
         """
         this func defines the list_student_submissions, Returns a list of student submissions that the requester is permitted to view,
         factoring in the OAuth scopes of the response. - may be specified as the courseWorkId to include student submissions
@@ -754,7 +753,7 @@ class Teacher(GccBase):
 
     @gcc_validators.validate_params(str, str, str, dict)
     def modify_submissions_attachments(self, course_id: str, course_work_id: str, submission_id: str,
-                                       materials: dict) -> dict | False:
+                                       materials: dict) -> dict or False:
         """
         this func defines the modify_submissions_attachments, modifies attachments of student submission..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/modifyAttachments
@@ -790,7 +789,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_student_submissions(self, detailed_json: bool = False) -> dict | False:
+    def detailed_patch_student_submissions(self, detailed_json: bool = False) -> dict or False:
         """
         this func defines the detailed_patch_student_submissions, updates one or more fields of a student submission.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/patch
@@ -822,7 +821,7 @@ class Teacher(GccBase):
     def quick_patch_student_submissions(self, course_id: str, course_work_id: str, submission_id: str,
                                         sub_states: list[str] = None, assigned_grade: int = None,
                                         short_answer: str = None, alternate_link: str = None,
-                                        assignment_submission: dict = None) -> dict | False:
+                                        assignment_submission: dict = None) -> dict or False:
         """
         this func defines the quick_patch_student_submissions, updates one or more fields of a student submission.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/patch
@@ -892,7 +891,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str, str)
-    def return_student_submissions(self, course_id: str, course_work_id: str, submission_id: str) -> dict | False:
+    def return_student_submissions(self, course_id: str, course_work_id: str, submission_id: str) -> dict or False:
         """
         this func defines the return_student_submissions, returns a student submission.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/return
@@ -917,7 +916,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_create_course_work_materials(self, detailed_json: bool = False) -> dict | False:
+    def detailed_create_course_work_materials(self, detailed_json: bool = False) -> dict or False:
         """
         this func defines the detailed_create_course_work_materials, creates a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/create
@@ -942,7 +941,7 @@ class Teacher(GccBase):
 
     @gcc_validators.validate_params(str, str, str, list)
     def quick_create_course_work_materials(self, course_id: str, title: str, description: str,
-                                           materials: dict) -> dict | False:
+                                           materials: dict) -> dict or False:
         """
         this func defines the quick_create_course_work_materials, creates a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/create
@@ -1007,7 +1006,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def get_course_work_materials(self, course_id: str, c_w_m_id: str) -> dict | False:
+    def get_course_work_materials(self, course_id: str, c_w_m_id: str) -> dict or False:
         """
         this func defines the get_course_work_materials, returns a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/get
@@ -1033,7 +1032,7 @@ class Teacher(GccBase):
     @gcc_validators.validate_params(str)
     def list_course_work_materials(self, course_id: str, c_w_m_states: list[str] = None, page_size: int = 10,
                                    page_token: str = None, order_by: str = None, material_link: str = None,
-                                   material_drive_id: str = None) -> dict | False:
+                                   material_drive_id: str = None) -> dict or False:
         """
         this func defines the list_course_work_materials, returns a list of course work material that the
         requester is permitted to view.
@@ -1107,7 +1106,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_course_work_material(self, detailed_json: bool = False) -> dict | False:
+    def detailed_patch_course_work_material(self, detailed_json: bool = False) -> dict or False:
         """
         this func defines the detailed_patch_course_work_material, updates one or more fields of a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/patch
@@ -1133,7 +1132,7 @@ class Teacher(GccBase):
     @gcc_validators.validate_params(str, str)
     def quick_patch_course_work_material(self, course_id: str, c_w_m_id: str, title: str = None, material: dict = None,
                                          description: str = None, scheduled_time: str = None, states: list[str] = None,
-                                         individual_students_options: list[str] = None) -> dict | False:
+                                         individual_students_options: list[str] = None) -> dict or False:
         """
         this func defines the quick_patch_course_work_material, updates one or more fields of a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/patch
@@ -1217,7 +1216,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str, str)
-    def quick_add_student(self, course_id: str, enrollment_code: str, user_id: str) -> dict | bool:
+    def quick_add_student(self, course_id: str, enrollment_code: str, user_id: str) -> dict or False:
         """
         this func defines the quick_add_student, adds a user as a student of a course.
         see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
@@ -1254,7 +1253,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_add_student(self, detailed_json: bool = False) -> dict | bool:
+    def detailed_add_student(self, detailed_json: bool = False) -> dict or False:
         """
         this func defines the detailed_add_student, adds a user as a student of a course.
         see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
@@ -1307,7 +1306,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def get_student(self, course_id: str, user_id: str) -> dict | False:
+    def get_student(self, course_id: str, user_id: str) -> dict or False:
         """
         this func defines the get_student, return a user as a student of a course.
         see https://developers.google.com/classroom/reference/rest/v1/courses.students/get
@@ -1335,7 +1334,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str)
-    def list_students(self, course_id: str, page_size: int = 10, page_token: str = None) -> dict | False:
+    def list_students(self, course_id: str, page_size: int = 10, page_token: str = None) -> dict or False:
         """
         this func defines the list_students, returns a list of students of this course that the requester is permitted to view.
         see https://developers.google.com/classroom/reference/rest/v1/courses.students/list
@@ -1379,7 +1378,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def create_topic(self, course_id: str, topic_name: str) -> dict | bool:
+    def create_topic(self, course_id: str, topic_name: str) -> dict or False:
         """
         this func defines the create_topic, creates a topic.
         see https://developers.google.com/classroom/reference/rest/v1/courses.topics/create
@@ -1410,7 +1409,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def delete_topic(self, course_id: str, topic_id: str) -> bool:
+    def delete_topic(self, course_id: str, topic_id: str) -> dict or False:
         """
         this func defines the delete_topic, deletes a topic.
         see https://developers.google.com/classroom/reference/rest/v1/courses.topics/delete
@@ -1433,7 +1432,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def get_topic(self, course_id: str, topic_id: str) -> dict | bool:
+    def get_topic(self, course_id: str, topic_id: str) -> dict or False:
         """
         this func defines the get_topic, returns a topic.
         see https://developers.google.com/classroom/reference/rest/v1/courses.topics/delete
@@ -1456,7 +1455,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str)
-    def list_topics(self, course_id: str, page_size: int = 10, page_token: str = None) -> dict | bool:
+    def list_topics(self, course_id: str, page_size: int = 10, page_token: str = None) -> dict or False:
         """
         this func defines the list_topics, returns the list of topics that the requester is permitted to view.
         see https://developers.google.com/classroom/reference/rest/v1/courses.topics/delete
@@ -1498,7 +1497,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str, str)
-    def patch_topic(self, course_id: str, topic_id: str, topic_name: str) -> dict | bool:
+    def patch_topic(self, course_id: str, topic_id: str, topic_name: str)-> dict or False:
         """
         this func defines the patch_topic, updates one or more fields of a topic.
         see https://developers.google.com/classroom/reference/rest/v1/courses.topics/patch
