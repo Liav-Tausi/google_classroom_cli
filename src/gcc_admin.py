@@ -1,12 +1,14 @@
 import json
-from gcc_base import GccBase
-import gcc_exceptions
-import gcc_validators
+
+from src import gcc_validators
 from googleapiclient.errors import HttpError
 
 __all__ = [
     'Admin'
 ]
+
+from src import gcc_exceptions
+from src.gcc_base import GccBase
 
 
 class Admin(GccBase):
@@ -17,17 +19,6 @@ class Admin(GccBase):
         if role != 'admin':
             raise gcc_exceptions.InvalidRole()
         super().__init__(role, ref_cache_month, work_space, email)
-
-        if self.workspace:
-            check = self.workspace
-        else:
-            check = self.email
-
-        self.__check = check
-
-    @property
-    def check(self):
-        return self.__check
 
     def detailed_create_course(self, detailed_json: bool = False) -> tuple:
         """
@@ -44,11 +35,6 @@ class Admin(GccBase):
             course_json = json.load(fh)
         try:
             response: dict = self.classroom.courses().create(body=course_json).execute()
-            print(f"""
-                   Created course: {response["name"]}
-                   Course id: {response["id"]}
-                   Enrollment code: {response["enrollmentCode"]}
-                   """)
             self._update_cache()
             return response['id'], response["name"]
         except HttpError as error:
@@ -56,7 +42,7 @@ class Admin(GccBase):
 
     @gcc_validators.validate_params(str, str, str, str, str, str)
     def quick_create_course(self, name: str, section: str, description: str, room: str, owner_id='me',
-                            course_state: str = 'PROVISIONED') -> tuple:
+                            course_state: str = 'PROVISIONED') -> dict or False:
         """
         This method creates a course with the given name, section, description, room, owner_id, and course_state.
         see https://developers.google.com/classroom/reference/rest/v1/courses/create
@@ -86,15 +72,12 @@ class Admin(GccBase):
         }
         try:
             response: dict = self.classroom.courses().create(body=body).execute()
-            print(f"""
-                   Created course: {response["name"]}
-                   Course id: {response["id"]}
-                   Enrollment code: {response["enrollmentCode"]}
-                   """)
             self._update_cache()
-            return int(response['id']), response["name"], self.check
+            return {'course_id': response['id'], 'course_name': response["name"],
+                    'enrollment code': response["enrollmentCode"], 'user': self.check}
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
+            return False
 
     @gcc_validators.validate_params(str)
     def delete_course(self, course_id: str) -> bool:
@@ -111,10 +94,6 @@ class Admin(GccBase):
 
         try:
             request = self.classroom.courses().delete(id=course_id).execute()
-            print(f"""
-                       Deleted course: {request["name"]}
-                       Course id: {request["id"]}
-            """)
             self._update_cache()
             return True
         except HttpError as error:
@@ -209,7 +188,7 @@ class Admin(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def update_course(self, detailed_json: bool = False) -> dict or bool:
+    def update_course(self, detailed_json: bool = False) -> dict or False:
         """
         this func defines the detailed_patch_course method, modifies assignee mode and options of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses/patch
@@ -232,7 +211,7 @@ class Admin(GccBase):
             return False
 
     @gcc_validators.validate_params(str)
-    def get_course(self, course_id: str) -> dict | bool:
+    def get_course(self, course_id: str) -> dict or False:
         """
         this func defines the get_course method, returns a course..
         see https://developers.google.com/classroom/reference/rest/v1/courses/get
@@ -252,7 +231,7 @@ class Admin(GccBase):
             return False
 
     def list_courses(self, student_id: str = 'me', teacher_id: str = 'me', states: list[str] = None,
-                     page_size: int = 10, page_token: str = None) -> tuple[str, str] | bool:
+                     page_size: int = 10, page_token: str = None) -> tuple[str, str] or bool:
         """
         this func defines the list_courses method, returns a list of courses that the requesting user is permitted to view,
         restricted to those that match the request. Returned courses are ordered by creation time,
@@ -313,7 +292,7 @@ class Admin(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def create_alias(self, course_id: str, alias: str) -> dict | bool:
+    def create_alias(self, course_id: str, alias: str) -> dict or bool:
         """
         this func defines the create_alias method, creates an alias for a course.
         see https://developers.google.com/classroom/reference/rest/v1/courses.aliases/create
@@ -358,7 +337,7 @@ class Admin(GccBase):
             return False
 
     @gcc_validators.validate_params(str)
-    def list_alias(self, course_id: str, page_size: int = 10, page_token: str = None) -> tuple | bool:
+    def list_alias(self, course_id: str, page_size: int = 10, page_token: str = None) -> tuple or bool:
         """
         this func defines the list_alias method, returns a list of aliases for a course..
         see https://developers.google.com/classroom/reference/rest/v1/courses.aliases/list
@@ -419,7 +398,7 @@ class Admin(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def delete_teacher(self, course_id: str, teacher_email: str) -> tuple[str, str] | bool:
+    def delete_teacher(self, course_id: str, teacher_email: str) -> tuple[str, str] or bool:
         """
         this func defines the delete_teacher method, removes the specified teacher from the specified course.
         see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/delete
@@ -438,14 +417,13 @@ class Admin(GccBase):
             self.classroom.courses().teachers().delete(courseId=course_id,
                                                        userId=teacher_email).execute()
             self._update_cache()
-            print(f'User {teacher_email} was deleted from course with ID {course_id}')
             return teacher_email, course_id
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
     @gcc_validators.validate_params(str, str)
-    def get_teacher(self, course_id: str, teacher_email: str) -> dict | bool:
+    def get_teacher(self, course_id: str, teacher_email: str) -> dict or False:
         """
         this func defines the delete_teacher method, removes the specified teacher from the specified course.
         see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/get
@@ -470,7 +448,7 @@ class Admin(GccBase):
             return False
 
     @gcc_validators.validate_params(str)
-    def list_teachers(self, course_id: str, page_size: int = 10, page_token: str = None) -> tuple[dict, str] | bool:
+    def list_teachers(self, course_id: str, page_size: int = 10, page_token: str = None) -> tuple[dict, str] or bool:
         """
         this func defines the list_teachers method, returns a list of teachers of this course that the requester is permitted to view.
         see https://developers.google.com/classroom/reference/rest/v1/courses.teachers/list
@@ -516,7 +494,7 @@ class Admin(GccBase):
         return self._accept_invitation(invitation_id=invitation_id)
 
     @gcc_validators.validate_params(str, str, str)
-    def create_invitation(self, course_id: str, user_id: str, role: str) -> dict | bool:
+    def create_invitation(self, course_id: str, user_id: str, role: str) -> dict or False:
         """
         this func defines the create_invitation, creates an invitation. only one invitation for a user and course may exist at a time.
         delete and re-create an invitation to make changes
@@ -571,7 +549,7 @@ class Admin(GccBase):
             return False
 
     @gcc_validators.validate_params(str)
-    def get_invitation(self, invitation_id: str) -> dict | bool:
+    def get_invitation(self, invitation_id: str) -> dict or False:
         """
         this func defines the get_invitation method, gets an invitation.
         see https://developers.google.com/classroom/reference/rest/v1/invitations/get
@@ -590,7 +568,7 @@ class Admin(GccBase):
 
     @gcc_validators.validate_params(str, str)
     def list_invitation(self, course_id: str, user_id: str, page_size: int = 10,
-                        page_token: str = None) -> dict:
+                        page_token: str = None) -> dict or False:
         """
         this func defines the get_invitation method, gets an invitation.
         see https://developers.google.com/classroom/reference/rest/v1/invitations/get
@@ -636,7 +614,7 @@ class Admin(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    # def create_registration(self, course_id: str, cloud_pubsub_topic: str, feed_url: str) -> dict | bool:
+    # def create_registration(self, course_id: str, cloud_pubsub_topic: str, feed_url: str) -> dict or False:
     #     """
     #     Creates a Google Classroom registration for a feed URL and a Cloud Pub/Sub topic.
     #
@@ -666,7 +644,7 @@ class Admin(GccBase):
     #         return False
 
     @gcc_validators.validate_params(str)
-    def get_user(self, user_id: str) -> dict | bool:
+    def get_user(self, user_id: str) -> dict or False:
         """
         this func defines the get_user method, returns a user profile.
         see https://developers.google.com/classroom/reference/rest/v1/userProfiles/get
@@ -684,4 +662,5 @@ class Admin(GccBase):
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
+
 
