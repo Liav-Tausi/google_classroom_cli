@@ -1,6 +1,6 @@
 <div align="left">by liav tausi</div>
 <div align="center">
-    <img src="https://www.linkpicture.com/q/class-room-cli.png" width="130">
+    <img src="https://www.linkpicture.com/q/class-room-cli.png" width="140">
     <h2 align="center">Google Classroom CLI (Under Construction) </h2>
 </div>
 
