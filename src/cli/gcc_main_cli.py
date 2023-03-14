@@ -1,13 +1,10 @@
 import argparse
-from src.gcc_validators import *
+import json
 
-from gcc_student_cli import StudentCli
-from gcc_teacher_cli import TeacherCli
 from src.cli.gcc_admin_cli import AdminCli
-
-from src.gcc_teacher import Teacher
-from src.gcc_student import Student
-from src.gcc_admin import Admin
+from src.cli.gcc_student_cli import StudentCli
+from src.cli.gcc_teacher_cli import TeacherCli
+from src.gcc_validators import is_email
 
 possible_methods = [
     'd_create',
@@ -44,10 +41,11 @@ class Sort:
     orders the terminal command line.
     """
 
-    def __init__(self, role: str, email: str = None, work_space: str = None):
+    def __init__(self, role: str, email: str = None, work_space: str = None, ref_cache: int = None):
         self.__work_space = work_space
         self.__email = email
         self.__role = role.lower()
+        self.__ref_cache = ref_cache
 
     @property
     def email(self):
@@ -58,33 +56,26 @@ class Sort:
         return self.__work_space
 
     @property
+    def ref_cache(self):
+        return self.__ref_cache
+
+    @property
     def role(self):
         return self.__role
 
     def cli_nav(self, service, method, **kwargs):
 
         if self.role == 'admin':
-            if self.work_space:
-                Admin(role=self.role, work_space=self.work_space)
-            else:
-                Admin(role=self.role, email=self.email)
-            AdminCli(service=service.lower(), method=method.lower())
+            admin_cli = AdminCli(service=service.lower(), method=method.lower(), **kwargs)
+            return admin_cli.method_nav(email=self.email, work_space=self.work_space, ref_cache_month=self.ref_cache)
 
         elif self.role == 'teacher':
-            if self.work_space:
-                Teacher(role=self.role, work_space=self.work_space)
-            else:
-                Teacher(role=self.role, email=self.email)
-
-            TeacherCli(service=service.lower(), method=method.lower(), **kwargs)
+            teacher_cli = TeacherCli(service=service.lower(), method=method.lower(), **kwargs)
+            return teacher_cli.method_nav(email=self.email, work_space=self.work_space, ref_cache_month=self.ref_cache)
 
         elif self.role == 'student':
-            if self.work_space:
-                Student(role=self.role, work_space=self.work_space)
-            else:
-                Student(role=self.role, email=self.email)
-
-            StudentCli(service=service.lower(), method=method.lower(), **kwargs)
+            student_cli = StudentCli(service=service.lower(), method=method.lower(), **kwargs)
+            return student_cli.method_nav(email=self.email, work_space=self.work_space, ref_cache_month=self.ref_cache)
 
         else:
             raise ValueError(f"Invalid scan role: {self.role}")
@@ -127,7 +118,7 @@ def main():
     parser.add_argument('--desc', type=str, help='the description of the service')
     parser.add_argument('--w_type', type=str, help='the type of the course work')
     parser.add_argument('--c_w_id', type=str, help='the ID of the course work')
-    parser.add_argument('--s_id', type=str, help='the ID of the student submission')
+    parser.add_argument('--sub_id', type=str, help='the ID of the student submission')
     parser.add_argument('--due_date', type=json.loads, help='the due date of the service')
     parser.add_argument('--due_time', type=json.loads, help='the due time of the service')
     parser.add_argument('--u_id', type=str, help='the user ID')
@@ -158,11 +149,11 @@ def main():
     parser.add_argument('--inv_role', type=str, help='role for invitation')
 
     args = parser.parse_args()
-
-    if is_work_space_email(args.e):
-        sorting: Sort = Sort(work_space=args.e, role=args.r)
+    if is_email(args.a):
+        sorting: Sort = Sort(email=args.a, role=args.r, ref_cache=args.ref_cache)
     else:
-        sorting: Sort = Sort(email=args.e, role=args.r)
+        sorting: Sort = Sort(work_space=args.a, role=args.r, ref_cache=args.ref_cache)
+
 
     return sorting.cli_nav(
         service=args.s, method=args.m, ref_cache=args.ref_cache,
@@ -187,7 +178,7 @@ def main():
         c_w_id=args.c_w_id,
         due_date=args.due_date,
         due_time=args.due_time,
-        u_id=args.user_id,
+        u_id=args.u_id,
         sub_states=args.sub_states,
         late=args.late,
         assi_grade=args.assi_grade,
@@ -207,7 +198,7 @@ def main():
         room=args.room,
         o_id=args.o_id,
         desc_h=args.desc_h,
-        s_id=args.s_id,
+        sub_id=args.sub_id,
         t_id=args.t_id,
         alias=args.alias,
         t_email=args.t_email,
