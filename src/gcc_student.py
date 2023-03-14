@@ -17,7 +17,7 @@ class Student(GccBase):
             raise gcc_exceptions.InvalidRole()
         super().__init__(role, ref_cache_month, work_space, email)
 
-
+    @gcc_validators.validate_params(str, str, str)
     def reclaim_submission(self, course_id: str, course_work_id: str, submission_id: str) -> bool:
         """
         this func defines the reclaim_submission, reclaims a student submission on behalf of the student that owns it.
@@ -29,8 +29,8 @@ class Student(GccBase):
         :param submission_id: identifier of the student submission. 'string'
         :return: bool
         """
-        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
-        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
+        gcc_validators.are_params_in_cache(course_id)
+
         try:
             self.classroom.courses().courseWork().studentSubmissions().reclaim(
                 courseId=course_id,
@@ -42,7 +42,7 @@ class Student(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
+    @gcc_validators.validate_params(str, str, str)
     def tern_in_submission(self, course_id: str, course_work_id: str, submission_id: str) -> bool:
         """
         this func defines the tern_in_submission, turns in a student submission.
@@ -54,8 +54,8 @@ class Student(GccBase):
         :param submission_id: identifier of the student submission. 'string'
         :return: bool
         """
-        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
-        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
+        gcc_validators.are_params_in_cache(course_id)
+
         try:
             self.classroom.courses().courseWork().studentSubmissions().ternIn(
                 courseId=course_id,
