@@ -1,6 +1,5 @@
 import argparse
 import json
-
 from src.cli.gcc_admin_cli import AdminCli
 from src.cli.gcc_student_cli import StudentCli
 from src.cli.gcc_teacher_cli import TeacherCli
