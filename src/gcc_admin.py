@@ -1,14 +1,12 @@
-import datetime
 import json
-from typing import Tuple, Any
-
 from gcc_base import GccBase
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2.credentials import Credentials
 import gcc_exceptions
 import gcc_validators
-
 from googleapiclient.errors import HttpError
+
+__all__ = [
+    'Admin'
+]
 
 
 class Admin(GccBase):
@@ -45,14 +43,14 @@ class Admin(GccBase):
         with open('templates/detailed_course.json', 'r') as fh:
             course_json = json.load(fh)
         try:
-            request: dict = self.classroom.courses().create(body=course_json).execute()
+            response: dict = self.classroom.courses().create(body=course_json).execute()
             print(f"""
-                   Created course: {request["name"]}
-                   Course id: {request["id"]}
-                   Enrollment code: {request["enrollmentCode"]}
+                   Created course: {response["name"]}
+                   Course id: {response["id"]}
+                   Enrollment code: {response["enrollmentCode"]}
                    """)
             self._update_cache()
-            return request['id'], request["name"]
+            return response['id'], response["name"]
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
 
@@ -87,14 +85,14 @@ class Admin(GccBase):
             'courseState': course_state.upper()
         }
         try:
-            request: dict = self.classroom.courses().create(body=body).execute()
+            response: dict = self.classroom.courses().create(body=body).execute()
             print(f"""
-                   Created course: {request["name"]}
-                   Course id: {request["id"]}
-                   Enrollment code: {request["enrollmentCode"]}
+                   Created course: {response["name"]}
+                   Course id: {response["id"]}
+                   Enrollment code: {response["enrollmentCode"]}
                    """)
             self._update_cache()
-            return int(request['id']), request["name"], self.check
+            return int(response['id']), response["name"], self.check
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
 
@@ -138,24 +136,21 @@ class Admin(GccBase):
         with open('templates/detailed_course.json', 'r') as fh:
             body = json.load(fh)
         try:
-            request: dict = self.classroom.courses().patch(**body).execute()
+            response: dict = self.classroom.courses().patch(**body).execute()
             self._update_cache()
-            return request
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
     @gcc_validators.validate_params(str)
     def quick_patch_course(self, course_id: str, name: str = None, state: str = None,
                            description: str = None, description_heading: str = None,
-                           materials: list = None, course_json: bool = False) -> bool:
+                           materials: dict = None) -> bool:
         """
         this func defines the patch_course method, modifies assignee mode and options of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses/delete
         for more info
-
-        :param course_json: 'detailed_course.json' must be full!!!
 
         :param materials: Additional materials. CourseWork must have no more than 20 material items. 'list[material]'
                          https://developers.google.com/classroom/reference/rest/v1/Material
@@ -175,11 +170,6 @@ class Admin(GccBase):
         :param course_id: either identifier of the course or assigned alias. 'string'
         :return: True | False
         """
-        # validation
-
-        if course_json:
-            raise gcc_exceptions.CourseJsonEmpty()
-
         body: dict = dict()
 
         if name:
@@ -203,7 +193,7 @@ class Admin(GccBase):
         if materials:
             if isinstance(materials, list):
                 raise TypeError()
-            body['materials'] = materials
+            body['materials'] = [materials]
 
         update_mask = ','.join(body.keys())
 
@@ -216,38 +206,29 @@ class Admin(GccBase):
             self._update_cache()
             return True
         except HttpError as error:
-            self.logger.error(f'An error occurred: {error}')
+            self.logger.error('An error occurred: %s' % error)
             return False
 
-    @gcc_validators.validate_params(str, dict)
-    def update_course(self, course_id: str, course_data: dict) -> bool:
+    def update_course(self, detailed_json: bool = False) -> dict or bool:
         """
-        this func defines the update_course method, updates a course.
-        see https://developers.google.com/classroom/reference/rest/v1/courses/update
+        this func defines the detailed_patch_course method, modifies assignee mode and options of an announcement.
+        see https://developers.google.com/classroom/reference/rest/v1/courses/patch
         for more info
 
-        :param course_id: either identifier of the course or assigned alias. 'string'
-        :param course_data: Course object! https://developers.google.com/classroom/reference/rest/v1/courses#Course
-        :return: bool
+        :param detailed_json:
+        :return:
         """
-        # validation
-        gcc_validators.are_params_in_cache(course_id)
+        if not detailed_json:
+            raise gcc_exceptions.CourseJsonEmpty()
 
-        body: dict = {
-            'name': course_data.get('name'),
-            'section': course_data.get('section'),
-            'descriptionHeading': course_data.get('descriptionHeading'),
-            'description': course_data.get('description'),
-            'room': course_data.get('room'),
-            'courseState': course_data.get('courseState'),
-            'ownerId': course_data.get('ownerId')
-        }
+        with open('templates/detailed_course.json', 'r') as fh:
+            body = json.load(fh)
         try:
-            self.classroom.courses().update(courseId=course_id, body=body).execute()
+            response: dict = self.classroom.courses().update(**body).execute()
             self._update_cache()
-            return True
+            return response
         except HttpError as error:
-            self.logger.error(f'An error occurred: {error}')
+            self.logger.error('An error occurred: %s' % error)
             return False
 
     @gcc_validators.validate_params(str)
@@ -264,13 +245,13 @@ class Admin(GccBase):
         gcc_validators.are_params_in_cache(course_id)
 
         try:
-            request: dict = self.classroom.courses().get(courseId=str(course_id)).execute()
-            return request
+            response: dict = self.classroom.courses().get(courseId=str(course_id)).execute()
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def list_courses(self, student_id: str = 'me', teacher_id: str = 'me', course_states: list[str] = None,
+    def list_courses(self, student_id: str = 'me', teacher_id: str = 'me', states: list[str] = None,
                      page_size: int = 10, page_token: str = None) -> tuple[str, str] | bool:
         """
         this func defines the list_courses method, returns a list of courses that the requesting user is permitted to view,
@@ -291,7 +272,7 @@ class Admin(GccBase):
         the string literal "me" "or"
         indicating the requesting user)
 
-        :param course_states: https://developers.google.com/classroom/reference/rest/v1/courses#CourseState
+        :param states: https://developers.google.com/classroom/reference/rest/v1/courses#CourseState
         :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
         :param page_token: Token identifying the next page of results to return. If empty, no further results are available
         :return tuple[the courses, the next page token] | False
@@ -308,11 +289,12 @@ class Admin(GccBase):
             gcc_validators.are_params_string(teacher_id)
             query_params['teacherId'] = teacher_id
 
-        if course_states:
-            if course_states not in ['COURSE_STATE_UNSPECIFIED', 'ACTIVE', 'ARCHIVED',
-                                     'PROVISIONED', 'DECLINED', 'SUSPENDED']:
-                raise gcc_exceptions.CourseStateError()
-            query_params['courseStates'] = course_states
+        if states:
+            for state in states:
+                if state not in ['COURSE_STATE_UNSPECIFIED', 'ACTIVE', 'ARCHIVED',
+                                 'PROVISIONED', 'DECLINED', 'SUSPENDED']:
+                    raise gcc_exceptions.CourseStateError()
+            query_params['courseStates'] = states
 
         if page_size:
             gcc_validators.are_params_int(page_size)
@@ -348,8 +330,8 @@ class Admin(GccBase):
             "alias": alias
         }
         try:
-            request: dict = self.classroom.courses().aliases().create(courseId=course_id, body=body).execute()
-            return request
+            response: dict = self.classroom.courses().aliases().create(courseId=course_id, body=body).execute()
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -392,15 +374,15 @@ class Admin(GccBase):
         gcc_validators.are_params_int(page_size)
 
         try:
-            request = self.classroom.courses().aliases().list(courseId=course_id,
-                                                              pageSize=page_size)
+            response = self.classroom.courses().aliases().list(courseId=course_id,
+                                                               pageSize=page_size)
             if page_token:
                 gcc_validators.are_params_string(page_token)
-                request.pageToken = page_token
-            teacher = request.execute()
+                response.pageToken = page_token
+            teacher = response.execute()
             next_page_token = teacher.get("nextPageToken", None)
 
-            return request, next_page_token
+            return response, next_page_token
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -480,9 +462,9 @@ class Admin(GccBase):
         if not gcc_validators.is_email(teacher_email):
             raise gcc_exceptions.InvalidEmail()
         try:
-            request: dict = self.classroom.courses().teachers().get(courseId=course_id,
-                                                                    userId=teacher_email).execute()
-            return request
+            response: dict = self.classroom.courses().teachers().get(courseId=course_id,
+                                                                     userId=teacher_email).execute()
+            return response
         except HttpError as error:
             self.logger.error('An error occurred: %s' % error)
             return False
@@ -627,7 +609,6 @@ class Admin(GccBase):
         :return: response dict | False
         """
         gcc_validators.are_params_in_cache(course_id)
-
 
         query_params: dict = dict()
 
