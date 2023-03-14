@@ -27,25 +27,25 @@ class StudentCli:
     def service(self):
         return self.__service
 
-    def method_nav(self):
+    def method_nav(self, email=None, work_space=None, ref_cache_month=12):
         student_user: Student = Student(
             role='student',
-            ref_cache_month=self.params.get('ref_cache'),
-            email=self.params.get('a'),
-            work_space=self.params.get('a'))
+            ref_cache_month=ref_cache_month,
+            email=email,
+            work_space=work_space)
 
         if self.service == 'student_submissions':
             if self.method == 'turn_in':
                 return student_user.tern_in_submission(
                     course_id=self.params.get('c_id'),
                     course_work_id=self.params.get('c_w_id'),
-                    submission_id=self.params.get('s_id')
+                    submission_id=self.params.get('sub_id')
                 )
             elif self.method == 'reclaim':
                 return student_user.reclaim_submission(
                     course_id=self.params.get('c_id'),
                     course_work_id=self.params.get('c_w_id'),
-                    submission_id=self.params.get('s_id')
+                    submission_id=self.params.get('sub_id')
                 )
             else:
                 if self.service in ['d_create', 'q_create', 'delete', 'get', 'list',
