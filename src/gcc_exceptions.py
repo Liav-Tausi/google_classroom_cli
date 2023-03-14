@@ -7,6 +7,19 @@ class UserError(GccErrors):
         super().__init__('Role must be one of [student, teacher, admin].')
 
 
+class ServiceError(GccErrors):
+    def __init__(self):
+        super().__init__('Service must be specified. ' 
+                         '[courses, aliases, announcements, course_work, student_submissions, '
+                         'course_work_materials, students, teachers, topics, invitations, user_profiles]')
+
+
+class MethodError(GccErrors):
+    def __init__(self):
+        super().__init__('Method must be specified. '
+                         '[d_create, q_create, delete, get, list, d_patch, q_patch, modify, return, accept]')
+
+
 class InvalidEmail(GccErrors):
     def __init__(self):
         super().__init__('Invalid Email.')
