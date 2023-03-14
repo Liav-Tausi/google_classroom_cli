@@ -1,5 +1,5 @@
 from src import gcc_exceptions
-from src.gcc_teacher import *
+from src.gcc_teacher import Teacher
 
 
 class TeacherCli:
@@ -27,12 +27,12 @@ class TeacherCli:
     def service(self):
         return self.__service
 
-    def method_nav(self):
+    def method_nav(self, email=None, work_space=None, ref_cache_month=12):
         teacher_user: Teacher = Teacher(
             role='teacher',
-            ref_cache_month=self.params.get('ref_cache'),
-            email=self.params.get('a'),
-            work_space=self.params.get('a'))
+            ref_cache_month=ref_cache_month,
+            email=email,
+            work_space=work_space)
 
         if self.service == 'announcements':
             if self.method == 'd_create':
@@ -160,7 +160,7 @@ class TeacherCli:
                 return teacher_user.get_student_submissions(
                     course_id=self.params.get('c_id'),
                     course_work_id=self.params.get('c_w_id'),
-                    submission_id=self.params.get('s_id')
+                    submission_id=self.params.get('sub_id')
                 )
             elif self.method == 'list':
                 return teacher_user.list_student_submissions(
@@ -176,7 +176,7 @@ class TeacherCli:
                 return teacher_user.modify_submissions_attachments(
                     course_id=self.params.get('c_id'),
                     course_work_id=self.params.get('c_w_id'),
-                    submission_id=self.params.get('s_id'),
+                    submission_id=self.params.get('sub_id'),
                     materials=self.params.get('materials')
                 )
             elif self.method == 'd_patch':
@@ -187,7 +187,7 @@ class TeacherCli:
                 return teacher_user.quick_patch_student_submissions(
                     course_id=self.params.get('c_id'),
                     course_work_id=self.params.get('c_w_id'),
-                    submission_id=self.params.get('s_id'),
+                    submission_id=self.params.get('sub_id'),
                     sub_states=self.params.get('sub_states'),
                     assigned_grade=self.params.get('assi_grade'),
                     short_answer=self.params.get('s_answer'),
@@ -198,7 +198,7 @@ class TeacherCli:
                 return teacher_user.return_student_submissions(
                     course_id=self.params.get('c_id'),
                     course_work_id=self.params.get('c_w_id'),
-                    submission_id=self.params.get('s_id')
+                    submission_id=self.params.get('sub_id')
                 )
             else:
                 if self.method in ['accept', 'd_create', 'q_create',
