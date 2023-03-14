@@ -1,5 +1,5 @@
-from .. import gcc_exceptions
-from ..gcc_student import Student
+from src import gcc_exceptions
+from src.gcc_student import Student
 
 
 class StudentCli:
