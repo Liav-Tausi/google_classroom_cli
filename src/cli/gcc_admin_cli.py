@@ -28,12 +28,12 @@ class AdminCli:
         return self.__service
 
 
-    def method_nav(self):
+    def method_nav(self, email=None, work_space=None, ref_cache_month=12):
         admin_user: Admin = Admin(
             role='admin',
-            ref_cache_month=self.params.get('ref_cache'),
-            email=self.params.get('a'),
-            work_space=self.params.get('a')
+            ref_cache_month=ref_cache_month,
+            email=email,
+            work_space=work_space
         )
         if self.service == 'courses':
             if self.method == 'd_create':
@@ -184,7 +184,6 @@ class AdminCli:
                     gcc_exceptions.MethodError()
         else:
             raise gcc_exceptions.ServiceError()
-
 
 
 
