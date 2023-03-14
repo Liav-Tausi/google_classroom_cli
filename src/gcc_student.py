@@ -1,11 +1,11 @@
 from googleapiclient.errors import HttpError
-
 from gcc_base import GccBase
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-
 import gcc_validators
 import gcc_exceptions
+
+__all__ = [
+    'Student'
+]
 
 
 class Student(GccBase):
@@ -69,6 +69,3 @@ class Student(GccBase):
 
     def accept_invitation(self, invitation_id: str):
         return self._accept_invitation(invitation_id=invitation_id)
-
-
-
