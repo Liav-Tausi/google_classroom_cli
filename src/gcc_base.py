@@ -1,17 +1,9 @@
-from __future__ import print_function
-
-import functools
 import json
 
 import os.path
-from abc import ABC
-import time
 from datetime import timedelta, date
 
-import gcc_exceptions
-from conf import ini_config
-
-
+from src import gcc_exceptions
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -24,6 +16,8 @@ import logging
 
 from googleapiclient.errors import HttpError
 
+from src.conf import ini_config
+
 
 class GccBase:
     # ___Main_EndPoints___ #
@@ -32,9 +26,9 @@ class GccBase:
     # ___Scopes ___ #
     __ADMIN_SCOPES: dict[str, str] = {
         "courses": r"https://www.googleapis.com/auth/classroom.courses",
-        "class_rosters": "https://www.googleapis.com/auth/classroom.rosters",
-        "profile_emails": r"https://www.googleapis.com/auth/classroom.profile.emails",
-        "profile_photos": r"https://www.googleapis.com/auth/classroom.profile.photos",
+        # "class_rosters": "https://www.googleapis.com/auth/classroom.rosters",
+        # "profile_emails": r"https://www.googleapis.com/auth/classroom.profile.emails",
+        # "profile_photos": r"https://www.googleapis.com/auth/classroom.profile.photos",
     }
 
     __TEACHER_SCOPES: dict[str, str] = {
@@ -42,10 +36,10 @@ class GccBase:
         "courses": r"https://www.googleapis.com/auth/classroom.courses",
         "coursework_students": r"https://www.googleapis.com/auth/classroom.coursework.students",
         "guardians_for_students": r"https://www.googleapis.com/auth/classroom.guardianlinks.students",
-        "profile_emails": r"https://www.googleapis.com/auth/classroom.profile.emails",
-        "profile_photos": r"https://www.googleapis.com/auth/classroom.profile.photos",
+        # "profile_emails": r"https://www.googleapis.com/auth/classroom.profile.emails",
+        # "profile_photos": r"https://www.googleapis.com/auth/classroom.profile.photos",
         "push_notifications": r"https://www.googleapis.com/auth/classroom.push-notifications",
-        "class_rosters": r"https://www.googleapis.com/auth/classroom.rosters",
+        # "class_rosters": r"https://www.googleapis.com/auth/classroom.rosters",
         "student_submissions": r"https://www.googleapis.com/auth/classroom.student-submissions.students.readonly",
         "topics": r"https://www.googleapis.com/auth/classroom.topics"
     }
@@ -54,33 +48,34 @@ class GccBase:
         "courses_readonly": r"https://www.googleapis.com/auth/classroom.courses.readonly",
         "coursework_me": r"https://www.googleapis.com/auth/classroom.coursework.me",
         "guardians": r"https://www.googleapis.com/auth/classroom.guardianlinks.me.readonly",
-        "profile_emails": r"https://www.googleapis.com/auth/classroom.profile.emails",
-        "profile_photos": r"https://www.googleapis.com/auth/classroom.profile.photos",
+        # "profile_emails": r"https://www.googleapis.com/auth/classroom.profile.emails",
+        # "profile_photos": r"https://www.googleapis.com/auth/classroom.profile.photos",
         "push_notifications": r"https://www.googleapis.com/auth/classroom.push-notifications",
-        "class_rosters_readonly": r"https://www.googleapis.com/auth/classroom.rosters.readonly",
+        # "class_rosters_readonly": r"https://www.googleapis.com/auth/classroom.rosters.readonly",
         "student_submissions_me": r"https://www.googleapis.com/auth/classroom.student-submissions.me.readonly",
         "topics_readonly": r"https://www.googleapis.com/auth/classroom.topics.readonly"
     }
 
     def __init__(self, role: str, ref_cache_month: int = 12,
                  work_space: str = None, email: str = None):
+
         self.__logger = logging.getLogger(__name__)
 
         self.__creds = None
 
-        if email != 'me':
+        if email:
             if not gcc_validators.is_email(email):
                 raise gcc_exceptions.InvalidEmail()
             self.__email: str = email
         else:
-            self.__email: None = None
+            self.__email = None
 
         if work_space:
             if not gcc_validators.is_work_space_email(work_space):
                 raise gcc_exceptions.InvalidWorkSpace()
             self.__workspace: str = work_space
         else:
-            self.__workspace: None = None
+            self.__workspace = None
 
         if not email and not work_space:
             raise gcc_exceptions.InvalidParams()
@@ -108,16 +103,16 @@ class GccBase:
             self.__creds = Credentials.from_authorized_user_file(f'data_endpoint/{self.__role}_token.json',
                                                                  scopes=list(scopes))
 
-        if not self.creds or not self.creds.valid:
-            if self.creds and self.creds.expired and self.creds.refresh_token:
+        if not self.__creds or not self.__creds.valid:
+            if self.__creds and self.__creds.expired and self.__creds.refresh_token:
                 self.__creds.refresh(Request())
             else:
-                credentials_account_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+                credentials_account_file = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
                 flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file=credentials_account_file,
                                                                  scopes=list(scopes))
                 self.__creds = flow.run_local_server(port=0)
             with open(f'data_endpoint/{self.__role}_token.json', 'w', encoding='utf-8') as token:
-                token.write(self.creds.to_json())
+                token.write(self.__creds.to_json())
 
         # ___limitations___ #
         self.__limits: dict = dict()
@@ -141,10 +136,10 @@ class GccBase:
         except FileNotFoundError:
             self.__cache: dict = dict()
 
-        if self.workspace:
-            check = self.workspace
+        if self.__workspace:
+            check = self.__workspace
         else:
-            check = self.email
+            check = self.__email
 
         self.__check = check
 
@@ -159,14 +154,6 @@ class GccBase:
     @property
     def creds(self):
         return self.__creds
-
-    @property
-    def email(self):
-        return self.__email
-
-    @property
-    def workspace(self):
-        return self.__workspace
 
     @property
     def teacher_scopes(self):
