@@ -1,11 +1,14 @@
 from googleapiclient.errors import HttpError
-from gcc_base import GccBase
-import gcc_validators
-import gcc_exceptions
+
+from src import gcc_validators
+from src import gcc_exceptions
+from src.gcc_base import GccBase
 
 __all__ = [
     'Student'
 ]
+
+
 
 
 class Student(GccBase):
