@@ -321,7 +321,7 @@ class Teacher(GccBase):
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/create
         for more info
 
-        for detailed_course_work_create method the "detailed_course_work.json" stored at the data_endpoint directory should be filled!!
+        for detailed_course_work_create method the "detailed_course_work.json" stored at the data_endpointds directory should be filled!!
         for more info: https://developers.google.com/classroom/reference/rest/v1/courses.courseWork#CourseWork
 
         :param detailed_json: flag for indication if json is full True if not False 'bool'
