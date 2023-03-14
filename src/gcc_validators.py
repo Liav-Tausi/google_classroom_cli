@@ -10,7 +10,7 @@ def is_email(email: str) -> bool:
     if re.fullmatch(regex, email):
         return True
     else:
-        return False
+        gcc_exceptions.InvalidEmail()
 
 
 # work_space account validator
@@ -22,6 +22,19 @@ def is_work_space_email(email: str) -> bool:
         return True
     else:
         return False
+
+
+def validate_params(*types):
+    def wrapper(func):
+        def validator(*args, **kwargs):
+            for arg, arg_type in zip(args[1::], types):
+                if not isinstance(arg, arg_type):
+                    raise TypeError(f"Argument {arg} must be of type {arg_type}")
+            return func(*args, **kwargs)
+
+        return validator
+
+    return wrapper
 
 
 def are_params_string(*args, **kwargs):
