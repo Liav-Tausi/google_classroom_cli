@@ -3,12 +3,13 @@ import json
 import pytz
 
 from gcc_base import GccBase
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-
 from googleapiclient.errors import HttpError
 import gcc_exceptions
 import gcc_validators
+
+__all__ = [
+    'Teacher'
+]
 
 
 class Teacher(GccBase):
@@ -342,7 +343,7 @@ class Teacher(GccBase):
 
     @gcc_validators.validate_params(str, str, str, list, str, str)
     def quick_course_work_create(self, course_id: str, title: str, description: str,
-                                 material: list, work_type: str, state: str) -> dict | False:
+                                 material: dict, work_type: str, state: str) -> dict | False:
         """
         this func defines the quick_course_work_create method, creates course work..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/create
@@ -370,7 +371,7 @@ class Teacher(GccBase):
         body: dict = {
             'title': title,
             'description': description,
-            'materials': material,
+            'materials': [material],
             'workType': work_type,
             'state': state,
         }
@@ -564,7 +565,7 @@ class Teacher(GccBase):
     def quick_patch_course_work(self, course_id: str, course_work_id: str, title: str = None,
                                 description: str = None, due_date: dict = None, due_time: dict = None,
                                 scheduled_time: str = None, states: list[str] = None,
-                                materials: list = None) -> dict | False:
+                                materials: dict = None) -> dict | False:
         """
         this func defines the quick_patch_course_work, updates one or more fields of a course work.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/patch
@@ -628,7 +629,7 @@ class Teacher(GccBase):
         if materials:
             if isinstance(materials, list):
                 raise TypeError()
-            body['materials'] = materials
+            body['materials'] = [materials]
 
         update_mask: str = ','.join(body.keys())
 
@@ -773,7 +774,7 @@ class Teacher(GccBase):
 
         body: dict = {
             "addAttachments": [
-                {materials}
+                materials
             ]
         }
         try:
@@ -941,7 +942,7 @@ class Teacher(GccBase):
 
     @gcc_validators.validate_params(str, str, str, list)
     def quick_create_course_work_materials(self, course_id: str, title: str, description: str,
-                                           materials: list) -> dict | False:
+                                           materials: dict) -> dict | False:
         """
         this func defines the quick_create_course_work_materials, creates a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/create
@@ -967,7 +968,7 @@ class Teacher(GccBase):
         body: dict = {
             "title": title,
             "description": description,
-            "materials": materials
+            "materials": [materials]
         }
         try:
             response = self.classroom.courses().courseWorkMaterials().create(
@@ -1030,7 +1031,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str)
-    def list_course_work_materials(self, course_id: str, c_w_m_state: list[str] = None, page_size: int = 10,
+    def list_course_work_materials(self, course_id: str, c_w_m_states: list[str] = None, page_size: int = 10,
                                    page_token: str = None, order_by: str = None, material_link: str = None,
                                    material_drive_id: str = None) -> dict | False:
         """
@@ -1041,7 +1042,7 @@ class Teacher(GccBase):
 
         :param course_id: either identifier of the course or assigned alias. 'string'
 
-        :param c_w_m_state: status of this course work material. If unspecified, the default state is DRAFT.
+        :param c_w_m_states: status of this course work material. If unspecified, the default state is DRAFT.
                             see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials#CourseWorkMaterialState
 
         :param page_size: maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
@@ -1065,11 +1066,11 @@ class Teacher(GccBase):
 
         query_params: dict = dict()
 
-        if c_w_m_state:
-            for state in c_w_m_state:
+        if c_w_m_states:
+            for state in c_w_m_states:
                 if state not in ['COURSEWORK_MATERIAL_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
                     raise gcc_exceptions.CourseWorkMaterialStateError()
-            query_params['state'] = c_w_m_state
+            query_params['state'] = c_w_m_states
 
         if page_size:
             gcc_validators.are_params_int(page_size)
@@ -1130,7 +1131,7 @@ class Teacher(GccBase):
             return False
 
     @gcc_validators.validate_params(str, str)
-    def quick_patch_course_work_material(self, course_id: str, c_w_m_id: str, title: str = None, material: list = None,
+    def quick_patch_course_work_material(self, course_id: str, c_w_m_id: str, title: str = None, material: dict = None,
                                          description: str = None, scheduled_time: str = None, states: list[str] = None,
                                          individual_students_options: list[str] = None) -> dict | False:
         """
@@ -1187,9 +1188,9 @@ class Teacher(GccBase):
             body['description'] = description
 
         if material:
-            if isinstance(material, list):
+            if isinstance(material, dict):
                 raise TypeError()
-            body['materials'] = material
+            body['materials'] = [material]
 
         if scheduled_time:
             gcc_validators.are_params_string(scheduled_time)
