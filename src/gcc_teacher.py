@@ -1531,5 +1531,3 @@ class Teacher(GccBase):
         return self._accept_invitation(invitation_id=invitation_id)
 
 
-if __name__ == '__main__':
-    gcc = Teacher(role='teacher', email='liavt242@gmail.com')
