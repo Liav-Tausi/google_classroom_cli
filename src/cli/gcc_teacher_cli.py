@@ -1,5 +1,5 @@
-from .. import gcc_exceptions
-from ..gcc_teacher import *
+from src import gcc_exceptions
+from src.gcc_teacher import *
 
 
 class TeacherCli:
