@@ -685,7 +685,3 @@ class Admin(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
-if __name__ == '__main__':
-    gcc = Admin(email='liavt242@gmail.com')
-    liav = gcc.get_user('me')
