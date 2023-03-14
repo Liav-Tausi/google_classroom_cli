@@ -195,6 +195,7 @@ class GccBase:
     def set_limits(self):
         self.__limits = ini_config.get_config(filename='conf/personal_config.ini', section='usage_limits')
 
+    @gcc_validators.validate_params(str)
     def _accept_invitation(self, invitation_id: str) -> bool:
         """
         this func defines the accept_invitation method, Accepts an invitation.
@@ -207,8 +208,6 @@ class GccBase:
         :return: bool
 
         """
-        gcc_validators.are_params_string(invitation_id)
-
         try:
             self.classroom.courses().invitations().accept(id=invitation_id).execute()
             return True
