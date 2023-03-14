@@ -1,6 +1,6 @@
 import json
 import re
-import gcc_exceptions
+from src import gcc_exceptions
 
 
 # email validator
@@ -16,7 +16,6 @@ def is_email(email: str) -> bool:
 # work_space account validator
 def is_work_space_email(email: str) -> bool:
     pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-
     match = re.search(pattern, email)
     if match:
         return True
