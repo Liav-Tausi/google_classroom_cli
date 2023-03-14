@@ -19,7 +19,7 @@ class Teacher(GccBase):
             raise gcc_exceptions.InvalidRole()
         super().__init__(role, ref_cache_month, work_space, email)
 
-    def detailed_create_announcement(self, announcement_json: bool = False) -> dict | False:
+    def detailed_create_announcement(self, detailed_json: bool = False) -> dict | False:
         """
         this func defines the detailed_create_announcement method, creates a detailed announcement
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/create
@@ -28,7 +28,7 @@ class Teacher(GccBase):
 
         :return:
         """
-        if not announcement_json:
+        if not detailed_json:
             raise gcc_exceptions.AnnouncementJsonEmpty()
 
         with open("templates/detailed_announcement.json", 'r', encoding='utf-8') as fh:
@@ -41,7 +41,8 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def quick_create_announcement(self, course_id: str, announcement_text: str, materials: dict, state: dict,
+    @gcc_validators.validate_params(str, str, dict, str, str)
+    def quick_create_announcement(self, course_id: str, announcement_text: str, materials: dict, state: str,
                                   scheduled_time: str, update_time: str = None, assignee_mode: dict = None,
                                   students_options: list = None) -> dict | bool:
         """
@@ -53,9 +54,8 @@ class Teacher(GccBase):
                
         :param assignee_mode: Status of this announcement. If unspecified, the default state is DRAFT. 'string'
         :param update_time: Timestamp of the most recent change to this announcement. 'string'
-        :param alternate_link: 'string'
         :param scheduled_time: 'string'
-        :param state: announcement state 
+        :param state: announcement state
                https://developers.google.com/classroom/reference/rest/v1/courses.announcements#AnnouncementState
                     
         :param course_id: either identifier of the course or assigned alias. 'string'
@@ -69,7 +69,6 @@ class Teacher(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(announcement_text, course_id, assignee_mode, update_time, scheduled_time)
 
         if state not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
             raise gcc_exceptions.AnnouncementStateError()
@@ -100,6 +99,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def delete_announcement(self, course_id: str, announcement_id: str) -> bool:
         """
         this func defines the delete_announcement method, delete an announcement with the following params
@@ -113,8 +113,7 @@ class Teacher(GccBase):
         :return: True
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, announcement_id)
-        gcc_validators.are_params_string(course_id, announcement_id)
+        gcc_validators.are_params_in_cache(course_id)
 
         try:
             self.classroom.courses().announcements().delete(
@@ -127,6 +126,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def get_announcement(self, course_id: str, announcement_id: str) -> dict | False:
         """
         this func defines the get_announcement method, get an announcement with the following params
@@ -140,8 +140,7 @@ class Teacher(GccBase):
         :return: response dict | False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, announcement_id)
-        gcc_validators.are_params_string(course_id, announcement_id)
+        gcc_validators.are_params_in_cache(course_id)
 
         try:
             response: dict = self.classroom.courses().announcements().get(
@@ -153,7 +152,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def list_announcements(self, ann_states: str, page_size: int = 10, order_by: str = None,
+    def list_announcements(self, states: str, page_size: int = 10, order_by: str = None,
                            page_token: str = None) -> tuple | False:
         """
         this func defines the list_announcement method, get a list with all the announcements with the following params
@@ -162,7 +161,7 @@ class Teacher(GccBase):
 
         query-parameters = https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list#query-parameters
 
-        :param ann_states: https://developers.google.com/classroom/reference/rest/v1/courses.announcements#AnnouncementState
+        :param states: https://developers.google.com/classroom/reference/rest/v1/courses.announcements#AnnouncementState
         :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
         :param order_by: Optional sort ordering for results
         :param page_token: https://developers.google.com/classroom/reference/rest/v1/courses.announcements/list#body.ListAnnouncementsResponse.FIELDS.next_page_token
@@ -170,10 +169,10 @@ class Teacher(GccBase):
         """
         query_params: dict = dict()
 
-        if ann_states:
-            if ann_states not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+        if states:
+            if states not in ['ANNOUNCEMENT_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
                 raise gcc_exceptions.AnnouncementStateError()
-            query_params['announcementStates'] = ann_states
+            query_params['announcementStates'] = states
 
         if order_by:
             gcc_validators.are_params_string(order_by)
@@ -199,6 +198,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str)
     def modify_announcement_assignees(self, course_id: str, announcement_id: str, assignee_mode: str,
                                       add_student_ids: list[str] = None,
                                       remove_student_ids: list[str] = None) -> dict | False:
@@ -217,8 +217,7 @@ class Teacher(GccBase):
         :return: response dict | False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, announcement_id)
-        gcc_validators.are_params_string(course_id, announcement_id, assignee_mode)
+        gcc_validators.are_params_in_cache(course_id)
 
         if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
             raise gcc_exceptions.AssigneeModeError()
@@ -243,16 +242,16 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_announcement(self, detailed_announcement_json: bool = False) -> dict | False:
+    def detailed_patch_announcement(self, detailed_json: bool = False) -> dict | False:
         """
         this func defines the detailed_patch_announcement method, modifies detailed options of an announcement.
         see https://developers.google.com/classroom/reference/rest/v1/courses.announcements/patch
         for more info
 
-        param: detailed_announcement_json: flag for indication if json is full True if not False 'bool'
+        param: detailed_json: flag for indication if json is full True if not False 'bool'
         :return: response dict | False
         """
-        if not detailed_announcement_json:
+        if not detailed_json:
             raise gcc_exceptions.AnnouncementJsonEmpty()
 
         with open('templates/detailed_announcement.json', 'r', encoding='utf-8') as fh:
@@ -265,6 +264,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def quick_patch_announcement(self, course_id: str, announcement_id: str, state: str = None,
                                  text: str = None, scheduled_time: str = None) -> dict | False:
         """
@@ -281,7 +281,6 @@ class Teacher(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, announcement_id)
 
         body: dict = dict()
 
@@ -315,7 +314,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_course_work_create(self, course_work_json: bool = False) -> dict | False:
+    def detailed_course_work_create(self, detailed_json: bool = False) -> dict | False:
         """
         this func defines the detailed_course_work_create method, creates course work..
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/create
@@ -324,11 +323,11 @@ class Teacher(GccBase):
         for detailed_course_work_create method the "detailed_course_work.json" stored at the data_endpoint directory should be filled!!
         for more info: https://developers.google.com/classroom/reference/rest/v1/courses.courseWork#CourseWork
 
-        :param course_work_json: flag for indication if json is full True if not False 'bool'
+        :param detailed_json: flag for indication if json is full True if not False 'bool'
         :return: response dict or False
 
         """
-        if not course_work_json:
+        if not detailed_json:
             raise gcc_exceptions.CourseWorkJsonEmpty()
 
         with open('templates/detailed_course_work.json', 'r', encoding='utf-8') as fh:
@@ -341,6 +340,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str, list, str, str)
     def quick_course_work_create(self, course_id: str, title: str, description: str,
                                  material: list, work_type: str, state: str) -> dict | False:
         """
@@ -359,7 +359,6 @@ class Teacher(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, title, description, work_type, state)
 
         if state not in ['COURSE_WORK_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
             raise gcc_exceptions.CourseWorkStateError()
@@ -367,9 +366,6 @@ class Teacher(GccBase):
         if work_type not in ['COURSE_WORK_TYPE_UNSPECIFIED', 'ASSIGNMENT',
                              'SHORT_ANSWER_QUESTION', 'MULTIPLE_CHOICE_QUESTION']:
             raise gcc_exceptions.CourseWorkTypeError()
-
-        if isinstance(material, list):
-            raise TypeError()
 
         body: dict = {
             'title': title,
@@ -389,6 +385,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def delete_course_work(self, course_id: str, course_work_id: str) -> bool:
         """
         this func defines the delete_course_work method, deletes course work..
@@ -400,8 +397,8 @@ class Teacher(GccBase):
         :return: True or False 'bool'
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, course_work_id)
-        gcc_validators.are_params_string(course_id, course_work_id)
+        gcc_validators.are_params_in_cache(course_id)
+
         try:
             self.classroom.courses().courseWork().delete(
                 courseId=course_id,
@@ -413,6 +410,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def get_course_work(self, course_id: str, course_work_id: str) -> dict | bool:
         """
         this func defines the get_course_work method, gets course work..
@@ -424,8 +422,7 @@ class Teacher(GccBase):
         :return: True or False 'bool'
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, course_work_id)
-        gcc_validators.are_params_string(course_id, course_work_id)
+        gcc_validators.are_params_in_cache(course_id)
 
         try:
             response = self.classroom.courses().courseWork().get(
@@ -437,7 +434,8 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def list_course_work(self, course_id: str, course_work_states: list[str] = None,
+    @gcc_validators.validate_params(str)
+    def list_course_work(self, course_id: str, states: list[str] = None,
                          order_by: str = 'updateTime desc', page_size: int = 10,
                          page_token: str = None) -> tuple[list[dict], str] | False:
         """
@@ -447,7 +445,7 @@ class Teacher(GccBase):
 
         :param course_id: either identifier of the course or assigned alias. 'string'
 
-        :param course_work_states: Restriction on the work status to return. Only courseWork that matches is returned.
+        :param states: Restriction on the work status to return. Only courseWork that matches is returned.
                                    If unspecified, items with a work status of PUBLISHED is returned.
 
         :param page_size: Maximum number of items to return. Zero or unspecified indicates that the server may assign a maximum.
@@ -457,15 +455,14 @@ class Teacher(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id)
 
         query_params = {'courseId': course_id}
 
-        if course_work_states:
-            for state in course_work_states:
+        if states:
+            for state in states:
                 if state not in ['COURSE_WORK_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
                     raise gcc_exceptions.CourseWorkStateError()
-            query_params['courseWorkStates'] = course_work_states
+            query_params['courseWorkStates'] = states
 
         if order_by:
             gcc_validators.are_params_string(order_by)
@@ -491,6 +488,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str)
     def modify_course_work_assignees(self, course_id: str, course_work_id: str, assignee_mode: str,
                                      add_student_ids: list[str] = None,
                                      remove_student_ids: list[str] = None) -> dict | False:
@@ -509,8 +507,7 @@ class Teacher(GccBase):
         :return: response dict | False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, course_work_id)
-        gcc_validators.are_params_string(course_id, course_work_id, assignee_mode)
+        gcc_validators.are_params_in_cache(course_id)
 
         if assignee_mode not in ['ASSIGNEE_MODE_UNSPECIFIED', 'ALL_STUDENTS', 'INDIVIDUAL_STUDENTS']:
             raise gcc_exceptions.AssigneeModeError()
@@ -535,17 +532,17 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_course_work(self, course_work_json: bool = False) -> dict | False:
+    def detailed_patch_course_work(self, detailed_json: bool = False) -> dict | False:
         """
         this func defines the detailed_patch_course_work method, updates one or more fields of a course work.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork/patch
         for more info
 
-        :param course_work_json: detailed course_json needs to be full
+        :param detailed_json: detailed course_json needs to be full
         :return: response dict or False
         """
 
-        if not course_work_json:
+        if not detailed_json:
             raise gcc_exceptions.CourseWorkJsonEmpty()
 
         with open('templates/detailed_course.json', 'r', encoding='utf-8') as fh:
@@ -563,9 +560,10 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def quick_patch_course_work(self, course_id: str, course_work_id: str, title: str = None,
                                 description: str = None, due_date: dict = None, due_time: dict = None,
-                                scheduled_time: datetime.datetime = None, state: list[str] = None,
+                                scheduled_time: str = None, states: list[str] = None,
                                 materials: list = None) -> dict | False:
         """
         this func defines the quick_patch_course_work, updates one or more fields of a course work.
@@ -585,7 +583,7 @@ class Teacher(GccBase):
         :param description: Optional description of this course work. If set,
                             the description must be a valid UTF-8 string containing no more than 30,000 characters. 'string'
 
-        :param state: State of the course. If unspecified, the default state is PROVISIONED.
+        :param states: State of the course. If unspecified, the default state is PROVISIONED.
                       see https://developers.google.com/classroom/reference/rest/v1/courses#CourseState
 
         :param materials: Additional materials. Course must have no more than 20 material items. 'list[material]'
@@ -593,7 +591,7 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, course_work_id)
+        gcc_validators.are_params_in_cache(course_id)
 
         body: dict = dict()
 
@@ -621,10 +619,11 @@ class Teacher(GccBase):
                 raise gcc_exceptions.TimeStampError()
             body['scheduledTime'] = scheduled_time
 
-        if state:
-            if state not in ['COURSE_WORK_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
-                raise gcc_exceptions.CourseWorkStateError()
-            body['state'] = description
+        if states:
+            for state in states:
+                if state not in ['COURSE_WORK_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
+                    raise gcc_exceptions.CourseWorkStateError()
+            body['state'] = states
 
         if materials:
             if isinstance(materials, list):
@@ -646,6 +645,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str)
     def get_student_submissions(self, course_id: str, course_work_id: str, submission_id: str) -> dict | False:
         """
         this func defines the get_student_submissions, returns a student submission.
@@ -658,8 +658,7 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
-        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
+        gcc_validators.are_params_in_cache(course_id)
 
         try:
             response = self.classroom.courses().courseWork().studentSubmissions().get(
@@ -672,7 +671,8 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def list_student_submissions(self, course_id: str, course_work_id: str, user_id: str,
+    @gcc_validators.validate_params(str, str)
+    def list_student_submissions(self, course_id: str, course_work_id: str, user_id: str = None,
                                  page_size: int = 10, sub_states: list[str] = 'SUBMISSION_STATE_UNSPECIFIED',
                                  late: str = 'LATE_VALUES_UNSPECIFIED', page_token: str = None) -> dict | False:
         """
@@ -704,8 +704,8 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, course_work_id)
-        gcc_validators.are_params_string(course_id, course_work_id)
+        gcc_validators.are_params_in_cache(course_id)
+
 
         query_params: dict = dict()
 
@@ -751,6 +751,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str, dict)
     def modify_submissions_attachments(self, course_id: str, course_work_id: str, submission_id: str,
                                        materials: dict) -> dict | False:
         """
@@ -768,11 +769,7 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
-        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
-
-        if not isinstance(materials, dict):
-            raise TypeError()
+        gcc_validators.are_params_in_cache(course_id)
 
         body: dict = {
             "addAttachments": [
@@ -792,16 +789,16 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_student_submissions(self, students_submissions_json: bool = False) -> dict | False:
+    def detailed_patch_student_submissions(self, detailed_json: bool = False) -> dict | False:
         """
         this func defines the detailed_patch_student_submissions, updates one or more fields of a student submission.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork.studentSubmissions/patch
         for more info
 
-        :param students_submissions_json: flag for indication if json is full True if not False 'bool'
+        :param detailed_json: flag for indication if json is full True if not False 'bool'
         :return: response dict or False
         """
-        if not students_submissions_json:
+        if not detailed_json:
             raise gcc_exceptions.StudentsSubmissionsJsonEmpty()
 
         with open('templates/detailed_students_submissions.json', 'r', encoding='utf-8') as fh:
@@ -820,6 +817,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str)
     def quick_patch_student_submissions(self, course_id: str, course_work_id: str, submission_id: str,
                                         sub_states: list[str] = None, assigned_grade: int = None,
                                         short_answer: str = None, alternate_link: str = None,
@@ -849,7 +847,7 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, course_work_id, submission_id)
+        gcc_validators.are_params_in_cache(course_id)
 
         body: dict = dict()
 
@@ -892,6 +890,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str)
     def return_student_submissions(self, course_id: str, course_work_id: str, submission_id: str) -> dict | False:
         """
         this func defines the return_student_submissions, returns a student submission.
@@ -904,8 +903,8 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         # validation
-        gcc_validators.are_params_in_cache(course_id, submission_id, course_work_id)
-        gcc_validators.are_params_string(course_id, course_work_id, submission_id)
+        gcc_validators.are_params_in_cache(course_id)
+
         try:
             response = self.classroom.courses().courseWork().studentSubmissions().return_(
                 courseId=course_id,
@@ -917,17 +916,17 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_create_course_work_materials(self, detailed_course_work_material_json: bool = False) -> dict | False:
+    def detailed_create_course_work_materials(self, detailed_json: bool = False) -> dict | False:
         """
         this func defines the detailed_create_course_work_materials, creates a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/create
         for more info
 
-        :param detailed_course_work_material_json: flag for indication if json is full True if not False 'bool'
+        :param detailed_json: flag for indication if json is full True if not False 'bool'
         :return: response dict or False
 
         """
-        if not detailed_course_work_material_json:
+        if not detailed_json:
             raise gcc_exceptions.CourseWorkMaterialJsonEmpty()
         try:
             with open('templates/detailed_course_work_material.json', 'r', encoding='utf-8') as fh:
@@ -940,6 +939,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str, list)
     def quick_create_course_work_materials(self, course_id: str, title: str, description: str,
                                            materials: list) -> dict | False:
         """
@@ -963,10 +963,6 @@ class Teacher(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, title, description)
-
-        if not isinstance(materials, list):
-            raise TypeError
 
         body: dict = {
             "title": title,
@@ -984,6 +980,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def delete_course_work_materials(self, course_id: str, c_w_m_id: str) -> bool:
         """
         this func defines the delete_course_work_materials, deletes a course work material.
@@ -996,7 +993,6 @@ class Teacher(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, c_w_m_id)
 
         try:
             self.classroom.courses().courseWorkMaterials().delete(
@@ -1009,7 +1005,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
+    @gcc_validators.validate_params(str, str)
     def get_course_work_materials(self, course_id: str, c_w_m_id: str) -> dict | False:
         """
         this func defines the get_course_work_materials, returns a course work material.
@@ -1022,7 +1018,6 @@ class Teacher(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, c_w_m_id)
 
         try:
             response = self.classroom.courses().courseWorkMatirials().get(
@@ -1034,6 +1029,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str)
     def list_course_work_materials(self, course_id: str, c_w_m_state: list[str] = None, page_size: int = 10,
                                    page_token: str = None, order_by: str = None, material_link: str = None,
                                    material_drive_id: str = None) -> dict | False:
@@ -1110,17 +1106,17 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_patch_course_work_material(self, detailed_course_work_material_json: bool = False) -> dict | False:
+    def detailed_patch_course_work_material(self, detailed_json: bool = False) -> dict | False:
         """
         this func defines the detailed_patch_course_work_material, updates one or more fields of a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/patch
         for more info
 
-        :param detailed_course_work_material_json: flag for indication if json is full True if not False 'bool'
+        :param detailed_json: flag for indication if json is full True if not False 'bool'
         :return: bool
 
         """
-        if not detailed_course_work_material_json:
+        if not detailed_json:
             raise gcc_exceptions.CourseWorkMaterialJsonEmpty()
 
         with open('templates/detailed_course_work_material.json', 'r', encoding='utf-8') as fh:
@@ -1133,15 +1129,16 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def quick_patch_course_work_material(self, course_id: str, c_w_m_id: str, title: str = None,  material: list = None,
-                                         description: str = None, scheduled_time: str = None, c_w_m_state: str = None,
+    @gcc_validators.validate_params(str, str)
+    def quick_patch_course_work_material(self, course_id: str, c_w_m_id: str, title: str = None, material: list = None,
+                                         description: str = None, scheduled_time: str = None, states: list[str] = None,
                                          individual_students_options: list[str] = None) -> dict | False:
         """
         this func defines the quick_patch_course_work_material, updates one or more fields of a course work material.
         see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials/patch
         for more info
 
-        :param c_w_m_state: status of this course work material. If unspecified, the default state is DRAFT.
+        :param states: status of this course work material. If unspecified, the default state is DRAFT.
                             see https://developers.google.com/classroom/reference/rest/v1/courses.courseWorkMaterials#CourseWorkMaterialState
 
         :param course_id: either identifier of the course or assigned alias. 'string'
@@ -1175,11 +1172,11 @@ class Teacher(GccBase):
 
         body: dict = dict()
 
-        if c_w_m_state:
-            for state in c_w_m_state:
+        if states:
+            for state in states:
                 if state not in ['COURSEWORK_MATERIAL_STATE_UNSPECIFIED', 'PUBLISHED', 'DRAFT', 'DELETED']:
                     raise gcc_exceptions.CourseWorkMaterialStateError()
-            body['state'] = c_w_m_state
+            body['state'] = states
 
         if title:
             gcc_validators.are_params_string(title)
@@ -1203,7 +1200,6 @@ class Teacher(GccBase):
                 raise TypeError()
             body['IndividualStudentsOptions'] = {"studentIds": individual_students_options}
 
-
         update_mask: str = ','.join(body.keys())
 
         try:
@@ -1219,6 +1215,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str)
     def quick_add_student(self, course_id: str, enrollment_code: str, user_id: str) -> dict | bool:
         """
         this func defines the quick_add_student, adds a user as a student of a course.
@@ -1240,7 +1237,6 @@ class Teacher(GccBase):
         """
         # validation
         gcc_validators.are_params_in_cache(course_id, enrollment_code)
-        gcc_validators.are_params_string(course_id, enrollment_code, user_id)
 
         body: dict = {
             "userId": user_id,
@@ -1257,16 +1253,16 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-    def detailed_add_student(self, detailed_student_json: bool = False) -> dict | bool:
+    def detailed_add_student(self, detailed_json: bool = False) -> dict | bool:
         """
         this func defines the detailed_add_student, adds a user as a student of a course.
         see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
         for more info
 
-        :param detailed_student_json: detailed course_json needs to be full
+        :param detailed_json: detailed course_json needs to be full
         :return: response dict | bool
         """
-        if not detailed_student_json:
+        if not detailed_json:
             raise gcc_exceptions.DetailedStudentJsonEmpty()
 
         with open(r'templates\derailed_student.json', 'r') as fh:
@@ -1280,6 +1276,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def delete_student(self, course_id: str, user_id: str) -> bool:
         """
         this func defines the delete_student, deletes a user as a student of a course.
@@ -1296,7 +1293,6 @@ class Teacher(GccBase):
         :return: bool
         """
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, user_id)
 
         try:
             self.classroom.courses().students().delete(
@@ -1309,6 +1305,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def get_student(self, course_id: str, user_id: str) -> dict | False:
         """
         this func defines the get_student, return a user as a student of a course.
@@ -1325,7 +1322,6 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, user_id)
 
         try:
             response = self.classroom.courses().students().get(
@@ -1337,6 +1333,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str)
     def list_students(self, course_id: str, page_size: int = 10, page_token: str = None) -> dict | False:
         """
         this func defines the list_students, returns a list of students of this course that the requester is permitted to view.
@@ -1380,7 +1377,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
-
+    @gcc_validators.validate_params(str, str)
     def create_topic(self, course_id: str, topic_name: str) -> dict | bool:
         """
         this func defines the create_topic, creates a topic.
@@ -1394,10 +1391,9 @@ class Teacher(GccBase):
         :return: response dict or False
         """
         gcc_validators.are_params_in_cache(course_id)
-        gcc_validators.are_params_string(course_id, topic_name)
 
         body: dict = {
-          "name": topic_name,
+            "name": topic_name,
         }
 
         try:
@@ -1412,6 +1408,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def delete_topic(self, course_id: str, topic_id: str) -> bool:
         """
         this func defines the delete_topic, deletes a topic.
@@ -1422,8 +1419,7 @@ class Teacher(GccBase):
         :param topic_id: identifier of the topic.
         :return: bool
         """
-        gcc_validators.are_params_in_cache(course_id, topic_id)
-        gcc_validators.are_params_string(course_id, topic_id)
+        gcc_validators.are_params_in_cache(course_id)
 
         try:
             self.classroom.courses().topics().delete(
@@ -1435,6 +1431,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str)
     def get_topic(self, course_id: str, topic_id: str) -> dict | bool:
         """
         this func defines the get_topic, returns a topic.
@@ -1445,8 +1442,7 @@ class Teacher(GccBase):
         :param topic_id: identifier of the topic.
         :return: response dict or False
         """
-        gcc_validators.are_params_in_cache(course_id, topic_id)
-        gcc_validators.are_params_string(course_id, topic_id)
+        gcc_validators.are_params_in_cache(course_id)
 
         try:
             response = self.classroom.courses().topics().delete(
@@ -1458,6 +1454,7 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str)
     def list_topics(self, course_id: str, page_size: int = 10, page_token: str = None) -> dict | bool:
         """
         this func defines the list_topics, returns the list of topics that the requester is permitted to view.
@@ -1499,25 +1496,25 @@ class Teacher(GccBase):
             self.logger.error('An error occurred: %s' % error)
             return False
 
+    @gcc_validators.validate_params(str, str, str)
     def patch_topic(self, course_id: str, topic_id: str, topic_name: str) -> dict | bool:
         """
         this func defines the patch_topic, updates one or more fields of a topic.
         see https://developers.google.com/classroom/reference/rest/v1/courses.topics/patch
         for more info
 
-        :param topic_name: The name of the topic, generated by the user. Leading and trailing whitespaces, if any, are trimmed.
-                           Also, multiple consecutive whitespaces are collapsed into one inside the name.
-                           The result must be a non-empty string. Topic names are case sensitive, and must be no longer than 100 characters.
+        :param topic_name: The name of the topic, generated by the user. Leading and trailing whitespaces,
+        if any, are trimmed. Also, multiple consecutive whitespaces are collapsed into one inside the name.
+        The result must be a non-empty string. Topic names are case-sensitive, and must be no longer than 100 characters.
+
         :param course_id: either identifier of the course or assigned alias. 'string'
         :param topic_id: identifier of the topic
         :return: response dict or False
-
         """
-        gcc_validators.are_params_in_cache(course_id, topic_id)
-        gcc_validators.are_params_string(course_id, topic_id, topic_name)
+        gcc_validators.are_params_in_cache(course_id)
 
         try:
-            response = self.classroom.courses().topics().patch(
+            response: dict = self.classroom.courses().topics().patch(
                 courseId=course_id,
                 id=topic_id,
                 updateMask='name',
