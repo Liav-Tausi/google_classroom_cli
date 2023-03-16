@@ -282,23 +282,6 @@ optional arguments:
 ```
 </details>
 
-### Features
-
-###### Google Classroom CLI supports the following features:
-
-- Creating and deleting courses
-- Getting and updating courses
-- Creating and deleting aliases for courses
-- Creating and deleting teachers and students for a course
-- Creating and deleting announcements
-- Creating, deleting, and getting course work
-- Creating, modifying, and returning student submissions
-- Creating, deleting, and getting course work materials
-- Creating and deleting topics
-- Accepting course invitations
-- Reclaiming a student submission
-- Turning in a student submission
-
 
 
 
