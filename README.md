@@ -150,7 +150,7 @@ git clone https://github.com/<username>/google_classroom_cli.git
 ```bash
 pip install -r requirements.txt
 ```
-#### 3. Set up Google Classroom API credentials by following these [instructions](https://developers.google.com/classroom/guides/authenticate).
+#### 3. Set up Google Classroom API credentials by following these [instructions](https://developers.google.com/workspace/guides/create-credentials).
 
 #### 4. Start the CLI:
 ```bash
