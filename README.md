@@ -4,7 +4,7 @@
     <h2 align="center">Google Classroom CLI </h2>
 </div>
 
-**Google Classroom CLI** is a **command-line interface** tool that allows users to interact with **Google Classroom** without leaving the terminal. The tool is intended for development, **teachers, and students** to have an easier and more efficient interface. The CLI supports the **same functionalities** as the Google Classroom **web interface**.
+**Google Classroom CLI** is a **command-line interface** tool that allows users to interact with **Google Classroom** without leaving the terminal. The tool is intended for development, **teachers, and students** to have an easier and more efficient interface. The CLI supports the **same functionalities** as the Google Classroom **web interface** #+ the ability to fill up a provided **json** tamplate for a very quick & detailed action.
 
 ```bash
 
