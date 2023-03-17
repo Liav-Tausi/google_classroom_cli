@@ -265,14 +265,14 @@ optional arguments:
  ```python
  
     possible_methods = [
-        'd_create',
-        'q_create',
-        'delete',
+        'd_create', #detaild create
+        'q_create', #quick create
+        'delete', 
         'get',
         'list',
-        'd_patch',
-        'q_patch',
-        'modify',
+        'd_patch', #detaild patch
+        'q_patch', #quick patch
+        'modify', 
         'return',
         'accept',
         'tern_in',
