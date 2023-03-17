@@ -4,7 +4,7 @@
     <h2 align="center">Google Classroom CLI </h2>
 </div>
 
-**Google Classroom CLI** is a **command-line interface** tool that allows users to interact with **Google Classroom** without leaving the terminal. The tool is intended for development, **teachers, and students** to have an easier and more efficient interface. The CLI supports the **same functionalities** as the Google Classroom **web interface** #+ the ability to fill up a provided **json** tamplate for a very quick & detailed action.
+**Google Classroom CLI** is a **command-line interface** tool that allows users to interact with **Google Classroom** without leaving the terminal. The tool is intended for development, **teachers, and students** to have an easier and more efficient interface. The CLI supports the **same functionalities** as the Google Classroom web interface + **the ability to fill up a provided json file tamplate for a very quick & detailed action**.
 
 ```bash
 
@@ -20,7 +20,8 @@ main.py [-h] [-s {courses,aliases,announcements,course_work,student_submissions,
   <summary>Admin</summary>
   
   ```python
-    "service" (-s) "methods" (-m) (--params)
+   "account" "role" "service" "method" "**parameters"
+     (a)      (r)     (-s)     (-m)     (--params)
         
     courses
         d_create (d_json)
@@ -60,7 +61,8 @@ main.py [-h] [-s {courses,aliases,announcements,course_work,student_submissions,
   <summary>Teacher</summary>
   
 ```python
-    "service" (-s) "methods" (-m) (--params)
+     "account" "role" "service" "method" "**parameters"
+        (a)      (r)     (-s)     (-m)      (--params)
 
     announcement: 
           d_create (d_json)
@@ -122,7 +124,8 @@ main.py [-h] [-s {courses,aliases,announcements,course_work,student_submissions,
   <summary>Student</summary>
   
  ```python
-  "service" (-s) "methods" (-m) (--params)
+     "account" "role" "service" "method" "**parameters"
+        (a)     (r)      (-s)     (-m)     (--params)
         
     student_submissions:
         turn_in (c_id, c_w_id, sub_id)
