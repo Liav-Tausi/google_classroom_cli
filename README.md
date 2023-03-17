@@ -12,7 +12,7 @@ main.py [-h] [-s {courses,aliases,announcements,course_work,student_submissions,
                [-m {d_create,q_create,delete,get,list,d_patch,q_patch,modify,return,accept}] [--ref_cache REF_CACHE] [--c_id C_ID] [--d_json] [--ann_text ANN_TEXT] [--ann_id ANN_ID] [--materials MATERIALS] [--state STATE] [--states STATES] [--s_time S_TIME] [--u_time U_TIME] [--assi_mode ASSI_MODE] [--s_options S_OPTIONS] [--p_size P_SIZE] [--o_by O_BY] [--p_token P_TOKEN] [--a_s_ids A_S_IDS] [--r_s_ids R_S_IDS] [--title TITLE] [--desc DESC] [--w_type W_TYPE] [--c_w_id C_W_ID] [--sub_id SUB_ID] [--due_date DUE_DATE] [--due_time DUE_TIME] [--u_id U_ID] [--sub_states SUB_STATES] [--late LATE] [--assi_grade ASSI_GRADE] [--s_answer S_ANSWER] [--alt_link ALT_LINK] [--assi_sub ASSI_SUB] [--c_w_m_id C_W_M_ID] [--c_w_m_states C_W_M_STATES] [--m_link M_LINK] [--m_drive_id M_DRIVE_ID] [--i_s_options I_S_OPTIONS] [--enr_code ENR_CODE] [--t_name T_NAME] [--top_id TOP_ID] [--inv_id INV_ID] [--name NAME] [--section SECTION] [--room ROOM] [--o_id O_ID] [--desc_h DESC_H] [--s_id S_ID] [--t_id T_ID] [--alias ALIAS] [--t_email T_EMAIL] [--inv_role INV_ROLE]
 
 ```
-- Note for anything more then creating a course, you will need a google worspace account
+- Note, for anything more then creating a course, you will need a google worspace account
 
 ### The CLI supports three types of users:
 
